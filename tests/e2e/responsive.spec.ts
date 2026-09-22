@@ -5,12 +5,17 @@
 import { expect, test } from '@playwright/test';
 
 const WIDTHS = [
+  { name: 'fold-phone', width: 280, height: 653 },
   { name: 'small-phone', width: 320, height: 640 },
   { name: 'phone', width: 375, height: 812 },
   { name: 'large-phone', width: 430, height: 932 },
+  { name: 'phone-landscape', width: 812, height: 375 },
   { name: 'tablet', width: 768, height: 1024 },
-  { name: 'laptop', width: 1024, height: 768 },
+  { name: 'tablet-landscape', width: 1024, height: 768 },
+  { name: 'laptop', width: 1280, height: 800 },
   { name: 'desktop', width: 1440, height: 900 },
+  { name: 'full-hd', width: 1920, height: 1080 },
+  { name: 'wide-2k', width: 2560, height: 1440 },
 ];
 
 const PAGES = [

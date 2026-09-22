@@ -94,6 +94,17 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  /* Fluid type: 16px on phones, growing gently to 19px on 2K/4K screens. Everything sized in
+     rem (spacing, content width) scales with it, so large monitors are filled in proportion. */
+  font-size: clamp(100%, 87.5% + 0.2vw, 118.75%);
+}
+
+/* Very wide monitors: give the content more room so tool grids show more columns. */
+@media (min-width: 1800px) {
+  :root {
+    --content-width: 84rem;
+    --prose-width: 48rem;
+  }
 }
 
 body {
