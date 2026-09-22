@@ -80,3 +80,27 @@ and must stay true in code.
 7. Comparison pages: factual, neutral tone, dated ("Checked on <date>"), no disparaging
    claims, no competitor logos. Every competitor fact carries a VERIFY marker until the
    owner checks it.
+
+## Phase 4 rules
+1. Ads never cover, push down or sit inside the tool area, upload button or download
+   button. No ads between "upload" and "result". No ads on /embed/*, /dev/*, legal pages,
+   error states, or while a file is processing.
+2. Every ad slot reserves its height in CSS before the ad loads (CLS must stay < 0.1).
+   Ad scripts load after the tool is interactive (after first user interaction or idle).
+3. Lighthouse mobile targets from earlier phases still apply WITH ads on. If a placement
+   breaks them, the placement is removed, not the target.
+4. Consent: ad scripts must not set cookies or load personalized ads for EEA/UK/CH
+   visitors before consent via a Google-certified CMP. Never build our own consent banner
+   for ads.
+5. Server tools are clearly labelled on the page and in the UI BEFORE upload:
+   "This tool uploads your file to our server to convert it. Files are deleted after
+   <N> minutes." (N set by the owner in src/data/site.ts). Browser-only tools keep their
+   "never leaves your device" badge; never show that badge on a server tool.
+6. Secrets (API keys, webhook secrets) live only in server environment variables. Never
+   in client code, never committed. A pre-commit check blocks accidental keys.
+7. No dark patterns: no fake countdowns, no fake "X people bought", no pre-checked
+   upsells, cancel as easy as subscribe. Free tools stay free; Pro adds convenience.
+8. Affiliate links use rel="sponsored noopener" and every page with one shows a short
+   disclosure line linking to /affiliate-disclosure.
+9. All prices, limits, file-retention times and credit amounts come from
+   src/data/plans.ts, which the owner edits. Never hard-code or invent them.
