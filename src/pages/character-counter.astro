@@ -1,8 +1,8 @@
 ---
 import ToolLayout from '../layouts/ToolLayout.astro';
-import ComingSoon from '../components/ComingSoon.astro';
 import { getTool } from '../data/tools';
 import { SITE } from '../data/site';
+import { SMS_LIMITS, TEXT_LIMITS } from '../data/limits';
 
 const tool = getTool('character-counter');
 ---
@@ -13,7 +13,214 @@ const tool = getTool('character-counter');
   description={`${tool.description} Free, no sign-up, and it runs in your browser.`}
   h1={`${tool.name} Online Free`}
   intro={tool.description}
+  privacySubject="your text"
 >
-  <ComingSoon tool={tool} />
+  <div class="field">
+    <label for="cc-text">Type or paste your text</label>
+    <textarea id="cc-text" rows="6" spellcheck="true"></textarea>
+  </div>
+  <div class="actions tight">
+    <button type="button" class="btn btn--secondary" id="cc-copy">Copy text</button>
+    <button type="button" class="btn btn--secondary" id="cc-clear">Clear</button>
+  </div>
+  <p class="visually-hidden" aria-live="polite" id="cc-status"></p>
+
+  <section class="counts" aria-label="Counts">
+    <div class="big-stat">
+      <span class="big-num" id="c-chars">0</span>
+      <span class="big-label">characters</span>
+    </div>
+    <dl class="stat-grid">
+      <div class="stat"><dt>Without spaces</dt><dd id="c-nospace">0</dd></div>
+      <div class="stat"><dt>Words</dt><dd id="c-words">0</dd></div>
+      <div class="stat"><dt>Lines</dt><dd id="c-lines">0</dd></div>
+      <div class="stat"><dt>Sentences</dt><dd id="c-sentences">0</dd></div>
+    </dl>
+    <p class="muted small">Emoji and accented letters count as one character each, as you see them.</p>
+  </section>
+
+  <section class="limits panel" aria-labelledby="limits-h">
+    <h2 id="limits-h" class="panel-title">Platform limits</h2>
+    <ul class="limit-list">
+      {
+        TEXT_LIMITS.map((l) => (
+          <li class="limit" data-limit={l.id} data-max={l.max}>
+            <div class="limit-head">
+              <span class="limit-name">{l.label}</span>
+              <span class="limit-count" data-count>
+                0 / {l.max.toLocaleString('en-US')}
+              </span>
+            </div>
+            <div class="bar" aria-hidden="true"><span class="fill" data-fill /></div>
+            {l.note && <p class="limit-note">{l.note}</p>}
+          </li>
+        ))
+      }
+      <li class="limit" id="sms-limit">
+        <div class="limit-head">
+          <span class="limit-name">SMS text message</span>
+          <span class="limit-count" id="sms-count">0 / {SMS_LIMITS.gsm7Single}</span>
+        </div>
+        <div class="bar" aria-hidden="true"><span class="fill" id="sms-fill"></span></div>
+        <p class="limit-note" id="sms-note">
+          Up to {SMS_LIMITS.gsm7Single} characters in one message with standard characters (GSM-7), or {SMS_LIMITS.ucs2Single}
+          if the text has emoji or non-Latin letters (Unicode). Longer texts are split into parts.
+        </p>
+      </li>
+    </ul>
+  </section>
+
   <!-- TODO (Prompt 8): long content goes in slot="content" -->
 </ToolLayout>
+
+<script>
+  import { countCharacters, countLines, countSentences, smsInfo, words } from '../lib/text-stats';
+  import { autogrow } from '../lib/autogrow';
+  import { copyText } from '../lib/clipboard';
+
+  const ta = document.getElementById('cc-text') as HTMLTextAreaElement;
+  const status = document.getElementById('cc-status')!;
+  const $ = (id: string) => document.getElementById(id)!;
+  const n = (v: number) => v.toLocaleString('en-US');
+  const resize = autogrow(ta, 600);
+  const limits = [...document.querySelectorAll<HTMLElement>('[data-limit]')];
+  const smsDefaultNote = document.getElementById('sms-note')!.textContent ?? '';
+
+  function setBar(li: HTMLElement, fill: HTMLElement, count: number, max: number) {
+    const ratio = count / max;
+    fill.style.width = `${Math.min(100, ratio * 100)}%`;
+    li.classList.toggle('is-near', ratio >= 0.9 && ratio <= 1);
+    li.classList.toggle('is-over', ratio > 1);
+  }
+
+  function render() {
+    const text = ta.value;
+    const chars = countCharacters(text);
+    $('c-chars').textContent = n(chars.withSpaces);
+    $('c-nospace').textContent = n(chars.withoutSpaces);
+    $('c-words').textContent = n(words(text).length);
+    $('c-lines').textContent = n(countLines(text));
+    $('c-sentences').textContent = n(countSentences(text));
+
+    for (const li of limits) {
+      const max = Number(li.dataset.max);
+      const count = chars.withSpaces;
+      const left = max - count;
+      li.querySelector('[data-count]')!.textContent =
+        `${n(count)} / ${n(max)} · ${left >= 0 ? `${n(left)} left` : `${n(-left)} over`}`;
+      setBar(li, li.querySelector<HTMLElement>('[data-fill]')!, count, max);
+    }
+
+    const sms = smsInfo(text);
+    $('sms-count').textContent =
+      sms.segments <= 1
+        ? `${n(sms.units)} / ${sms.perSegment} · ${sms.encoding}`
+        : `${n(sms.units)} characters · ${sms.segments} parts of ${sms.perSegment} · ${sms.encoding}`;
+    setBar($('sms-limit'), $('sms-fill'), sms.segments <= 1 ? sms.units : sms.perSegment, sms.perSegment);
+    $('sms-limit').classList.toggle('is-over', sms.segments > 1);
+    const note = $('sms-note');
+    note.textContent = smsDefaultNote;
+    if (sms.unicodeTrigger) {
+      note.textContent = `"${sms.unicodeTrigger}" is not a standard SMS character, so this message uses Unicode: ${sms.perSegment} characters per ${sms.segments > 1 ? 'part' : 'message'}.`;
+    }
+  }
+
+  ta.addEventListener('input', render);
+  $('cc-copy').addEventListener('click', async () => {
+    if (!ta.value) return (status.textContent = 'There is no text to copy.');
+    status.textContent = (await copyText(ta.value)) ? 'Text copied.' : 'Copy failed. Select the text and copy it manually.';
+  });
+  $('cc-clear').addEventListener('click', () => {
+    ta.value = '';
+    resize();
+    render();
+    ta.focus();
+    status.textContent = 'Text cleared.';
+  });
+  render();
+</script>
+
+<style>
+  textarea {
+    min-height: 9rem;
+    resize: vertical;
+  }
+  .tight {
+    margin-top: var(--space-2);
+  }
+  .counts {
+    margin-top: var(--space-4);
+  }
+  .big-stat {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+  }
+  .big-num {
+    font-size: 3rem;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .big-label {
+    font-size: var(--text-lg);
+    font-weight: 600;
+  }
+  .small {
+    font-size: var(--text-sm);
+    margin-top: var(--space-2);
+  }
+  .limits {
+    margin-top: var(--space-4);
+  }
+  .limit-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: var(--space-3);
+  }
+  .limit-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-1) var(--space-3);
+    font-size: var(--text-sm);
+  }
+  .limit-name {
+    font-weight: 600;
+  }
+  .bar {
+    height: 10px;
+    margin-top: var(--space-1);
+    background: var(--surface-2);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .fill {
+    display: block;
+    height: 100%;
+    width: 0;
+    background: var(--accent);
+    transition: width 0.15s;
+  }
+  .limit.is-near .fill {
+    background: var(--warning);
+  }
+  .limit.is-near .limit-count {
+    color: var(--warning);
+    font-weight: 600;
+  }
+  .limit.is-over .fill {
+    background: var(--danger);
+  }
+  .limit.is-over .limit-count {
+    color: var(--danger);
+    font-weight: 700;
+  }
+  .limit-note {
+    margin: var(--space-1) 0 0;
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+  }
+</style>

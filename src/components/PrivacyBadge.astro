@@ -6,11 +6,13 @@ interface Props {
   subject?: string;
 }
 const { subject = 'files' } = Astro.props;
+// "files never leave" but "your text never leaves"
+const verb = /s$/.test(subject) ? 'leave' : 'leaves';
 ---
 
 <p class="privacy-badge">
   <Icon name="lock" size={18} />
-  <span>Runs in your browser — {subject} never leave your device</span>
+  <span>Runs in your browser — {subject} never {verb} your device</span>
 </p>
 
 <style>

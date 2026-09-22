@@ -1,8 +1,8 @@
 ---
 import ToolLayout from '../layouts/ToolLayout.astro';
-import ComingSoon from '../components/ComingSoon.astro';
 import { getTool } from '../data/tools';
 import { SITE } from '../data/site';
+import { READING_WPM, SPEAKING_WPM } from '../data/limits';
 
 const tool = getTool('word-counter');
 ---
@@ -13,7 +13,282 @@ const tool = getTool('word-counter');
   description={`${tool.description} Free, no sign-up, and it runs in your browser.`}
   h1={`${tool.name} Online Free`}
   intro={tool.description}
+  privacySubject="your text"
 >
-  <ComingSoon tool={tool} />
+  <div class="wc">
+    <div class="field">
+      <label for="wc-text">Type or paste your text</label>
+      <textarea id="wc-text" rows="8" spellcheck="true" aria-describedby="wc-save-status"></textarea>
+    </div>
+
+    <div class="actions tight">
+      <button type="button" class="btn btn--secondary" id="wc-copy">Copy text</button>
+      <button type="button" class="btn btn--secondary" id="wc-clear">Clear</button>
+      <button type="button" class="btn btn--secondary" id="wc-upload">Upload .txt file</button>
+      <input type="file" id="wc-file" accept=".txt,text/plain" class="visually-hidden" tabindex="-1" aria-hidden="true" />
+    </div>
+
+    <div class="case-tools" role="group" aria-label="Change case">
+      <span class="label muted">Change case:</span>
+      <button type="button" class="btn btn--secondary" data-case="upper">UPPERCASE</button>
+      <button type="button" class="btn btn--secondary" data-case="lower">lowercase</button>
+      <button type="button" class="btn btn--secondary" data-case="title">Title Case</button>
+      <button type="button" class="btn btn--secondary" data-case="sentence">Sentence case</button>
+    </div>
+
+    <p class="save-line">
+      <span id="wc-save-status" class="muted">Your draft is saved only in this browser.</span>
+      <button type="button" class="link-btn" id="wc-forget">Clear saved text</button>
+    </p>
+    <p class="error-text" id="wc-error" role="alert" hidden></p>
+    <p class="visually-hidden" aria-live="polite" id="wc-status"></p>
+  </div>
+
+  <section aria-label="Text statistics" class="stats">
+    <div class="big-stat">
+      <span class="big-num" id="s-words">0</span>
+      <span class="big-label">words</span>
+    </div>
+    <dl class="stat-grid">
+      <div class="stat"><dt>Characters</dt><dd id="s-chars">0</dd></div>
+      <div class="stat"><dt>Characters (no spaces)</dt><dd id="s-chars-ns">0</dd></div>
+      <div class="stat"><dt>Sentences</dt><dd id="s-sentences">0</dd></div>
+      <div class="stat"><dt>Paragraphs</dt><dd id="s-paragraphs">0</dd></div>
+      <div class="stat"><dt>Lines</dt><dd id="s-lines">0</dd></div>
+      <div class="stat"><dt>Average word length</dt><dd id="s-avg">0</dd></div>
+      <div class="stat"><dt>Reading time</dt><dd id="s-read">0 sec</dd></div>
+      <div class="stat"><dt>Speaking time</dt><dd id="s-speak">0 sec</dd></div>
+      <div class="stat wide"><dt>Longest word</dt><dd id="s-longest">—</dd></div>
+    </dl>
+    <p class="muted small">
+      Reading time is based on ~{READING_WPM} words per minute and speaking time on ~{SPEAKING_WPM} words per
+      minute. Everyone reads at a different speed, so treat these as estimates.
+    </p>
+
+    <h2 class="kw-title">Keyword density</h2>
+    <p class="muted small">Top 10 words, leaving out common words such as "the" and "and".</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th scope="col">Word</th><th scope="col">Count</th><th scope="col">Density</th></tr></thead>
+        <tbody id="kw-body"><tr><td colspan="3" class="muted">Start typing to see keywords.</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
   <!-- TODO (Prompt 8): long content goes in slot="content" -->
 </ToolLayout>
+
+<script>
+  import { textStats, formatDuration, toTitleCase, toSentenceCase } from '../lib/text-stats';
+  import { autogrow, debounce, safeStorage } from '../lib/autogrow';
+  import { copyText } from '../lib/clipboard';
+  import { formatBytes } from '../lib/format';
+
+  const KEY = 'wc-draft';
+  const MAX_FILE = 5 * 1024 * 1024;
+  const ta = document.getElementById('wc-text') as HTMLTextAreaElement;
+  const status = document.getElementById('wc-status')!;
+  const saveStatus = document.getElementById('wc-save-status')!;
+  const errorEl = document.getElementById('wc-error')!;
+  const fileInput = document.getElementById('wc-file') as HTMLInputElement;
+  const $ = (id: string) => document.getElementById(id)!;
+  const n = (v: number) => v.toLocaleString('en-US');
+  const resize = autogrow(ta);
+
+  function showError(msg: string) {
+    errorEl.textContent = msg;
+    errorEl.hidden = !msg;
+  }
+
+  function render() {
+    const s = textStats(ta.value);
+    $('s-words').textContent = n(s.words);
+    $('s-chars').textContent = n(s.characters);
+    $('s-chars-ns').textContent = n(s.charactersNoSpaces);
+    $('s-sentences').textContent = n(s.sentences);
+    $('s-paragraphs').textContent = n(s.paragraphs);
+    $('s-lines').textContent = n(s.lines);
+    $('s-avg').textContent = s.words ? `${s.averageWordLength} characters` : '0';
+    $('s-read').textContent = formatDuration(s.readingSeconds);
+    $('s-speak').textContent = formatDuration(s.speakingSeconds);
+    $('s-longest').textContent = s.longestWord || '—';
+    const body = $('kw-body');
+    body.replaceChildren();
+    if (s.keywords.length === 0) {
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 3;
+      td.className = 'muted';
+      td.textContent = ta.value.trim() ? 'No keywords yet (common words are left out).' : 'Start typing to see keywords.';
+      tr.append(td);
+      body.append(tr);
+    }
+    for (const k of s.keywords) {
+      const tr = document.createElement('tr');
+      for (const text of [k.word, n(k.count), `${k.density}%`]) {
+        const td = document.createElement('td');
+        td.textContent = text;
+        tr.append(td);
+      }
+      body.append(tr);
+    }
+  }
+
+  // Large texts: wait for a pause in typing before recounting.
+  const renderSoon = debounce(render, 150);
+  const save = debounce(() => {
+    if (ta.value) {
+      const ok = safeStorage.set(KEY, ta.value);
+      saveStatus.textContent = ok
+        ? 'Draft saved in this browser only.'
+        : 'Your browser is blocking storage, so this draft will not be saved.';
+    } else safeStorage.remove(KEY);
+  }, 500);
+
+  ta.addEventListener('input', () => {
+    if (ta.value.length > 20_000) renderSoon();
+    else render();
+    save();
+  });
+
+  function setText(value: string) {
+    ta.value = value;
+    resize();
+    render();
+    save();
+  }
+
+  $('wc-copy').addEventListener('click', async () => {
+    if (!ta.value) return (status.textContent = 'There is no text to copy.');
+    status.textContent = (await copyText(ta.value)) ? 'Text copied.' : 'Copy failed. Select the text and copy it manually.';
+  });
+  $('wc-clear').addEventListener('click', () => {
+    setText('');
+    showError('');
+    ta.focus();
+    status.textContent = 'Text cleared.';
+  });
+  $('wc-forget').addEventListener('click', () => {
+    safeStorage.remove(KEY);
+    saveStatus.textContent = 'Saved text removed from this browser. Your text stays on screen until you close the page.';
+  });
+
+  document.querySelectorAll<HTMLButtonElement>('[data-case]').forEach((btn) =>
+    btn.addEventListener('click', () => {
+      if (!ta.value) return (status.textContent = 'Type or paste some text first.');
+      const mode = btn.dataset.case;
+      const v = ta.value;
+      setText(
+        mode === 'upper' ? v.toLocaleUpperCase()
+        : mode === 'lower' ? v.toLocaleLowerCase()
+        : mode === 'title' ? toTitleCase(v)
+        : toSentenceCase(v),
+      );
+      status.textContent = `Changed to ${btn.textContent}.`;
+    }),
+  );
+
+  $('wc-upload').addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files?.[0];
+    fileInput.value = '';
+    if (!file) return;
+    if (!/\.txt$/i.test(file.name) && file.type !== 'text/plain') {
+      return showError(`"${file.name}" is not a .txt file. For Word or PDF files, copy the text and paste it here.`);
+    }
+    if (file.size > MAX_FILE) {
+      return showError(`"${file.name}" is ${formatBytes(file.size)}. Please use a text file under ${formatBytes(MAX_FILE)}.`);
+    }
+    try {
+      const text = await file.text();
+      showError(
+        text.includes('�')
+          ? 'Some characters could not be read. Save the file as UTF-8 text and try again.'
+          : '',
+      );
+      setText(text);
+      status.textContent = `Loaded ${file.name}.`;
+    } catch {
+      showError(`"${file.name}" could not be read. It may be open in another program; close it and try again.`);
+    }
+  });
+
+  const saved = safeStorage.get(KEY);
+  if (saved) {
+    ta.value = saved;
+    resize();
+    saveStatus.textContent = 'Restored your saved draft from this browser.';
+  }
+  render();
+</script>
+
+<style>
+  textarea {
+    min-height: 12rem;
+    resize: vertical;
+    line-height: 1.6;
+  }
+  .tight {
+    margin-top: var(--space-2);
+  }
+  .case-tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+  }
+  .case-tools .label {
+    font-size: var(--text-sm);
+    font-weight: 600;
+  }
+  .case-tools .btn {
+    padding: 0 var(--space-3);
+  }
+  .save-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin: var(--space-2) 0 0;
+    font-size: var(--text-sm);
+  }
+  .link-btn {
+    min-height: var(--tap);
+    padding: 0 var(--space-2);
+    border: 0;
+    background: none;
+    color: var(--accent);
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  .stats {
+    margin-top: var(--space-4);
+  }
+  .big-stat {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+  }
+  .big-num {
+    font-size: 3rem;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .big-label {
+    font-size: var(--text-lg);
+    font-weight: 600;
+  }
+  .stat.wide {
+    grid-column: 1 / -1;
+  }
+  .small {
+    font-size: var(--text-sm);
+    margin-top: var(--space-2);
+  }
+  .kw-title {
+    margin-top: var(--space-4);
+  }
+</style>
