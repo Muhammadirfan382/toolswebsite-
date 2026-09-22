@@ -1,6 +1,5 @@
 ---
 import ToolLayout from '../layouts/ToolLayout.astro';
-import ComingSoon from '../components/ComingSoon.astro';
 import { getTool } from '../data/tools';
 import { SITE } from '../data/site';
 
@@ -13,7 +12,129 @@ const tool = getTool('age-calculator');
   description={`${tool.description} Free, no sign-up, and it runs in your browser.`}
   h1={`${tool.name} Online Free`}
   intro={tool.description}
+  privacySubject="dates"
 >
-  <ComingSoon tool={tool} />
+  <form class="panel" id="age-form" novalidate>
+    <div class="form-grid">
+      <div class="field">
+        <label for="dob">Date of birth</label>
+        <input type="date" id="dob" name="dob" min="0001-01-01" max="9999-12-31" required />
+      </div>
+      <div class="field">
+        <label for="at">Age at this date</label>
+        <input type="date" id="at" name="at" min="0001-01-01" max="9999-12-31" aria-describedby="at-hint" />
+        <span class="hint" id="at-hint">Leave as today, or pick another date.</span>
+      </div>
+    </div>
+    <div class="actions">
+      <button type="submit" class="btn">Calculate</button>
+      <button type="button" class="btn btn--secondary" id="age-copy" disabled>Copy result</button>
+    </div>
+  </form>
+
+  <div id="age-result" class="result-card" aria-live="polite"></div>
+  <p class="visually-hidden" aria-live="polite" id="age-copy-status"></p>
+
   <!-- TODO (Prompt 8): long content goes in slot="content" -->
 </ToolLayout>
+
+<script>
+  import { calculateAge, parseDate, todayLocal, toISO, type AgeResult, type YMD } from '../lib/calc/age';
+  import { fmt } from '../lib/calc/common';
+  import { readParams, writeParams } from '../lib/url-state';
+  import { wireCopyButton } from '../lib/clipboard';
+
+  const form = document.getElementById('age-form') as HTMLFormElement;
+  const dobInput = document.getElementById('dob') as HTMLInputElement;
+  const atInput = document.getElementById('at') as HTMLInputElement;
+  const out = document.getElementById('age-result')!;
+  const copyBtn = document.getElementById('age-copy') as HTMLButtonElement;
+  const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const longDate = (d: YMD) => `${d.d} ${MONTHS[d.m - 1]} ${d.y}`;
+  const plural = (n: number, word: string) => `${fmt(n, 0)} ${word}${n === 1 ? '' : 's'}`;
+
+  let copyText = '';
+  const today = toISO(todayLocal());
+
+  const params = readParams();
+  dobInput.value = parseDate(params.get('dob')) ? params.get('dob')! : '';
+  atInput.value = parseDate(params.get('at')) ? params.get('at')! : today;
+
+  const add = (parent: HTMLElement, tag: string, cls: string, text: string) => {
+    const node = document.createElement(tag);
+    if (cls) node.className = cls;
+    node.textContent = text;
+    parent.append(node);
+    return node;
+  };
+
+  function render(r: AgeResult, dob: YMD, at: YMD) {
+    out.replaceChildren();
+    const main = `${plural(r.years, 'year')}, ${plural(r.months, 'month')}, ${plural(r.days, 'day')}`;
+    add(out, 'p', 'result-main', main);
+    add(out, 'p', 'result-sub', `Born on a ${r.bornOn}, ${longDate(dob)}.`);
+    const bday = r.isBirthdayToday
+      ? `Happy birthday! You turn ${r.turning} on ${longDate(at)}.`
+      : `Next birthday: ${r.nextBirthdayWeekday}, ${longDate(r.nextBirthday)}, in ${plural(r.daysToNextBirthday, 'day')} (turning ${r.turning}).`;
+    add(out, 'p', 'result-sub', bday);
+
+    const dl = document.createElement('dl');
+    dl.className = 'stat-grid';
+    const stats: [string, string][] = [
+      ['Total months', fmt(r.totalMonths, 0)],
+      ['Total weeks', `${fmt(r.totalWeeks, 0)}${r.weeksRemainderDays ? ` + ${plural(r.weeksRemainderDays, 'day')}` : ''}`],
+      ['Total days', fmt(r.totalDays, 0)],
+      ['Total hours', fmt(r.totalHours, 0)],
+    ];
+    for (const [k, v] of stats) {
+      const div = document.createElement('div');
+      div.className = 'stat';
+      add(div, 'dt', '', k);
+      add(div, 'dd', '', v);
+      dl.append(div);
+    }
+    out.append(dl);
+    add(
+      out,
+      'p',
+      'formula',
+      `Method: count whole calendar months from ${longDate(dob)} to ${longDate(at)}, then the remaining days. Total hours = total days × 24 (time of birth not included). 29 February birthdays count as 28 February in non-leap years.`,
+    );
+    copyText = `Age on ${longDate(at)}: ${main}. Total days: ${fmt(r.totalDays, 0)}.`;
+    copyBtn.disabled = false;
+  }
+
+  function showError(message: string) {
+    out.replaceChildren();
+    add(out, 'p', 'error-text', message);
+    copyText = '';
+    copyBtn.disabled = true;
+  }
+
+  function update(fromSubmit = false) {
+    const dob = parseDate(dobInput.value);
+    const at = parseDate(atInput.value || today);
+    writeParams({ dob: dobInput.value, at: atInput.value && atInput.value !== today ? atInput.value : '' });
+    if (!dob) {
+      if (fromSubmit || dobInput.value) showError('Enter a valid date of birth.');
+      else {
+        out.replaceChildren();
+        copyBtn.disabled = true;
+      }
+      return;
+    }
+    if (!at) return showError('Enter a valid "age at" date.');
+    const r = calculateAge(dob, at);
+    if (r.ok) render(r.value, dob, at);
+    else showError(r.error);
+  }
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    update(true);
+  });
+  dobInput.addEventListener('input', () => update());
+  atInput.addEventListener('input', () => update());
+  wireCopyButton(copyBtn, () => copyText, document.getElementById('age-copy-status')!);
+  update();
+</script>

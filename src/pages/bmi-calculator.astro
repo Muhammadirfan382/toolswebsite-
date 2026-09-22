@@ -1,10 +1,14 @@
 ---
 import ToolLayout from '../layouts/ToolLayout.astro';
-import ComingSoon from '../components/ComingSoon.astro';
 import { getTool } from '../data/tools';
 import { SITE } from '../data/site';
+import { BMI_CATEGORIES } from '../data/presets';
 
 const tool = getTool('bmi-calculator');
+// Scale from BMI 15 to 40 for the marker bar.
+const SCALE_MIN = 15;
+const SCALE_MAX = 40;
+const pct = (v: number) => ((Math.min(Math.max(v, SCALE_MIN), SCALE_MAX) - SCALE_MIN) / (SCALE_MAX - SCALE_MIN)) * 100;
 ---
 
 <ToolLayout
@@ -13,7 +17,236 @@ const tool = getTool('bmi-calculator');
   description={`${tool.description} Free, no sign-up, and it runs in your browser.`}
   h1={`${tool.name} Online Free`}
   intro={tool.description}
+  privacySubject="measurements"
 >
-  <ComingSoon tool={tool} />
+  <form class="panel" id="bmi-form" novalidate>
+    <fieldset class="segmented">
+      <legend class="visually-hidden">Units</legend>
+      <label><input type="radio" name="u" value="metric" checked /> Metric (cm, kg)</label>
+      <label><input type="radio" name="u" value="imperial" /> Imperial (ft, in, lb)</label>
+    </fieldset>
+
+    <div class="form-grid units" data-units="metric">
+      <div class="field">
+        <label for="h">Height (cm)</label>
+        <input type="text" inputmode="decimal" id="h" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label for="w">Weight (kg)</label>
+        <input type="text" inputmode="decimal" id="w" autocomplete="off" />
+      </div>
+    </div>
+    <div class="form-grid units" data-units="imperial" hidden>
+      <div class="field">
+        <label for="ft">Height (feet)</label>
+        <input type="text" inputmode="decimal" id="ft" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label for="in">Height (inches)</label>
+        <input type="text" inputmode="decimal" id="in" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label for="lb">Weight (pounds)</label>
+        <input type="text" inputmode="decimal" id="lb" autocomplete="off" />
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="btn">Calculate</button>
+      <button type="button" class="btn btn--secondary" id="bmi-copy" disabled>Copy result</button>
+    </div>
+  </form>
+
+  <div id="bmi-result" class="result-card" aria-live="polite"></div>
+
+  <div class="bmi-scale" id="bmi-scale" hidden aria-hidden="true">
+    <div class="bar">
+      {
+        BMI_CATEGORIES.map((c) => (
+          <span class={`seg seg-${c.id}`} style={`left:${pct(c.min)}%;width:${pct(c.max) - pct(c.min)}%`} />
+        ))
+      }
+      <span class="marker" id="bmi-marker"></span>
+    </div>
+    <div class="ticks">
+      {BMI_CATEGORIES.slice(1).map((c) => c.min).map((t) => <span style={`left:${pct(t)}%`}>{t}</span>)}
+    </div>
+  </div>
+
+  <div class="table-wrap cats">
+    <table>
+      <caption class="visually-hidden">Adult BMI categories</caption>
+      <thead><tr><th scope="col">BMI</th><th scope="col">Category (adults)</th></tr></thead>
+      <tbody>
+        {
+          BMI_CATEGORIES.map((c) => (
+            <tr>
+              <td>{c.min === 0 ? `Under ${c.max}` : c.max === Infinity ? `${c.min} and above` : `${c.min} – ${c.displayMax}`}</td>
+              <td>{c.label}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+  <p class="note">
+    For adults 18+. Not medical advice. Children and teens use age-based percentiles.
+  </p>
+  <p class="visually-hidden" aria-live="polite" id="bmi-status"></p>
+
+  <script type="application/json" id="bmi-scale-cfg" set:html={JSON.stringify({ min: SCALE_MIN, max: SCALE_MAX, normal: BMI_CATEGORIES.find((c) => c.id === 'normal') })} />
+
   <!-- TODO (Prompt 8): long content goes in slot="content" -->
 </ToolLayout>
+
+<script>
+  import { bmi, imperialToMetric, KG_PER_LB } from '../lib/calc/bmi';
+  import { fmt, num } from '../lib/calc/common';
+  import { readParams, writeParams } from '../lib/url-state';
+  import { wireCopyButton } from '../lib/clipboard';
+
+  const cfg = JSON.parse(document.getElementById('bmi-scale-cfg')!.textContent!) as { min: number; max: number; normal: { min: number; displayMax: number } };
+  const form = document.getElementById('bmi-form') as HTMLFormElement;
+  const out = document.getElementById('bmi-result')!;
+  const scaleEl = document.getElementById('bmi-scale')!;
+  const marker = document.getElementById('bmi-marker')!;
+  const copyBtn = document.getElementById('bmi-copy') as HTMLButtonElement;
+  const $ = (id: string) => document.getElementById(id) as HTMLInputElement;
+  let copyText = '';
+
+  const units = () => form.querySelector<HTMLInputElement>('input[name="u"]:checked')!.value as 'metric' | 'imperial';
+  const para = (cls: string, text: string) => {
+    const p = document.createElement('p');
+    p.className = cls;
+    p.textContent = text;
+    return p;
+  };
+
+  function showUnits() {
+    form.querySelectorAll<HTMLElement>('[data-units]').forEach((g) => (g.hidden = g.dataset.units !== units()));
+  }
+
+  function update(fromSubmit = false) {
+    const u = units();
+    const metric = u === 'metric';
+    writeParams(
+      metric
+        ? { u: '', h: $('h').value, w: $('w').value }
+        : { u: 'imperial', ft: $('ft').value, in: $('in').value, lb: $('lb').value },
+    );
+    out.replaceChildren();
+    scaleEl.hidden = true;
+    copyBtn.disabled = true;
+
+    const raw = metric ? [$('h').value, $('w').value] : [$('ft').value, $('lb').value];
+    if (!fromSubmit && raw.some((v) => v.trim() === '')) return;
+
+    const { cm, kg } = metric
+      ? { cm: num($('h').value), kg: num($('w').value) }
+      : imperialToMetric(num($('ft').value), num($('in').value || '0'), num($('lb').value));
+    const r = bmi(cm, kg);
+    if (!r.ok) {
+      out.append(para('error-text', r.error));
+      return;
+    }
+    const v = r.value;
+    const range = metric
+      ? `${fmt(v.healthyMinKg, 1)} – ${fmt(v.healthyMaxKg, 1)} kg`
+      : `${fmt(v.healthyMinKg / KG_PER_LB, 0)} – ${fmt(v.healthyMaxKg / KG_PER_LB, 0)} lb`;
+    out.append(
+      para('result-main', `BMI ${v.bmi.toFixed(1)}: ${v.category}`),
+      para('result-sub', `A BMI of ${cfg.normal.min} – ${cfg.normal.displayMax} at your height means a weight of about ${range}.`),
+      para('formula', `BMI = weight (kg) ÷ height (m)²\n${v.working}${metric ? '' : '\n(converted from feet, inches and pounds)'}`),
+    );
+    (out.lastElementChild as HTMLElement).style.whiteSpace = 'pre-line';
+    const pos = ((Math.min(Math.max(v.bmi, cfg.min), cfg.max) - cfg.min) / (cfg.max - cfg.min)) * 100;
+    marker.style.left = `${pos}%`;
+    scaleEl.hidden = false;
+    copyText = `BMI ${v.bmi.toFixed(1)} (${v.category})`;
+    copyBtn.disabled = false;
+  }
+
+  form.addEventListener('change', (e) => {
+    if ((e.target as HTMLInputElement).name === 'u') {
+      showUnits();
+      update();
+    }
+  });
+  form.addEventListener('input', () => update());
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    update(true);
+  });
+  wireCopyButton(copyBtn, () => copyText, document.getElementById('bmi-status')!);
+
+  const params = readParams();
+  if (params.get('u') === 'imperial') form.querySelector<HTMLInputElement>('input[value="imperial"]')!.checked = true;
+  for (const key of ['h', 'w', 'ft', 'in', 'lb']) {
+    const v = params.get(key);
+    if (v) $(key).value = v;
+  }
+  showUnits();
+  update();
+</script>
+
+<style>
+  .segmented {
+    margin-bottom: var(--space-3);
+  }
+  .bmi-scale {
+    margin: var(--space-3) 0 var(--space-2);
+  }
+  .bar {
+    position: relative;
+    height: 14px;
+    border-radius: var(--radius);
+    overflow: visible;
+  }
+  .seg {
+    position: absolute;
+    top: 0;
+    height: 100%;
+  }
+  .seg-underweight {
+    background: #7fb3d5;
+    border-radius: var(--radius) 0 0 var(--radius);
+  }
+  .seg-normal {
+    background: #5fb98e;
+  }
+  .seg-overweight {
+    background: #e8c15a;
+  }
+  .seg-obese {
+    background: #e07a5f;
+    border-radius: 0 var(--radius) var(--radius) 0;
+  }
+  .marker {
+    position: absolute;
+    top: -6px;
+    width: 4px;
+    height: 26px;
+    margin-left: -2px;
+    background: var(--text);
+    border-radius: 2px;
+    transition: left 0.2s;
+  }
+  .ticks {
+    position: relative;
+    height: 1.5em;
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+  }
+  .ticks span {
+    position: absolute;
+    transform: translateX(-50%);
+  }
+  .cats {
+    margin-top: var(--space-3);
+    max-width: 28rem;
+  }
+  .note {
+    margin-top: var(--space-3);
+    font-weight: 600;
+  }
+</style>

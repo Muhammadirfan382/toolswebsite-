@@ -1,8 +1,8 @@
 ---
 import ToolLayout from '../layouts/ToolLayout.astro';
-import ComingSoon from '../components/ComingSoon.astro';
 import { getTool } from '../data/tools';
 import { SITE } from '../data/site';
+import { GRADE_SCALES } from '../data/presets';
 
 const tool = getTool('gpa-calculator');
 ---
@@ -13,7 +13,298 @@ const tool = getTool('gpa-calculator');
   description={`${tool.description} Free, no sign-up, and it runs in your browser.`}
   h1={`${tool.name} Online Free`}
   intro={tool.description}
+  privacySubject="grades"
 >
-  <ComingSoon tool={tool} />
+  <form class="panel" id="gpa-form" novalidate>
+    <div class="field scale-field">
+      <label for="gpa-scale">Grading scale</label>
+      <select id="gpa-scale">
+        {GRADE_SCALES.map((s) => <option value={s.id}>{s.label}</option>)}
+      </select>
+    </div>
+
+    <details class="scale-edit" id="scale-edit">
+      <summary>Edit grade points</summary>
+      <p class="hint muted">Change these if your school uses different points for a grade.</p>
+      <div class="scale-grid" id="scale-grid"></div>
+      <button type="button" class="btn btn--secondary" id="scale-reset">Reset to default</button>
+    </details>
+
+    <div class="rows-head" aria-hidden="true" style="--cols: 2fr 1fr 1fr var(--tap)">
+      <span>Course (optional)</span><span>Credits</span><span>Grade</span><span></span>
+    </div>
+    <ol class="rows" id="gpa-rows" aria-label="Courses" style="--cols: 2fr 1fr 1fr var(--tap)"></ol>
+
+    <div class="actions">
+      <button type="button" class="btn btn--secondary" id="gpa-add">+ Add course</button>
+      <button type="submit" class="btn">Calculate</button>
+      <button type="button" class="btn btn--secondary" id="gpa-copy" disabled>Copy result</button>
+    </div>
+  </form>
+
+  <div id="gpa-result" class="result-card" aria-live="polite"></div>
+  <p class="visually-hidden" aria-live="polite" id="gpa-status"></p>
+
+  <template id="gpa-row-tpl">
+    <li class="row">
+      <div class="field wide">
+        <label class="row-label">Course name</label>
+        <input type="text" data-name maxlength="60" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label class="row-label">Credit hours</label>
+        <input type="text" inputmode="decimal" data-credits autocomplete="off" />
+      </div>
+      <div class="field">
+        <label class="row-label">Grade</label>
+        <select data-grade></select>
+      </div>
+      <button type="button" class="remove" data-remove>✕</button>
+    </li>
+  </template>
+
+  <script type="application/json" id="gpa-scales" set:html={JSON.stringify(GRADE_SCALES.map((s) => ({ id: s.id, grades: s.grades })))} />
+
   <!-- TODO (Prompt 8): long content goes in slot="content" -->
 </ToolLayout>
+
+<script>
+  import { gpa, type GradeMapping } from '../lib/calc/gpa';
+  import { fmt, num } from '../lib/calc/common';
+  import { readParams, writeParams } from '../lib/url-state';
+  import { wireCopyButton } from '../lib/clipboard';
+
+  const scales = JSON.parse(document.getElementById('gpa-scales')!.textContent!) as { id: string; grades: GradeMapping[] }[];
+  const form = document.getElementById('gpa-form') as HTMLFormElement;
+  const scaleSelect = document.getElementById('gpa-scale') as HTMLSelectElement;
+  const scaleGrid = document.getElementById('scale-grid')!;
+  const rowsEl = document.getElementById('gpa-rows') as HTMLOListElement;
+  const tpl = document.getElementById('gpa-row-tpl') as HTMLTemplateElement;
+  const out = document.getElementById('gpa-result')!;
+  const status = document.getElementById('gpa-status')!;
+  const copyBtn = document.getElementById('gpa-copy') as HTMLButtonElement;
+
+  let mapping: GradeMapping[] = [];
+  let rowSeq = 0;
+  let copyText = '';
+
+  const baseScale = () => scales.find((s) => s.id === scaleSelect.value) ?? scales[0]!;
+
+  function renderScaleEditor() {
+    scaleGrid.replaceChildren(
+      ...mapping.map((g, i) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'field';
+        const label = document.createElement('label');
+        label.htmlFor = `pts-${i}`;
+        label.textContent = g.grade;
+        const input = document.createElement('input');
+        input.id = `pts-${i}`;
+        input.type = 'text';
+        input.inputMode = 'decimal';
+        input.value = String(g.points);
+        input.dataset.grade = g.grade;
+        wrap.append(label, input);
+        return wrap;
+      }),
+    );
+  }
+
+  function fillGradeOptions(select: HTMLSelectElement, selected = '') {
+    const current = selected || select.value;
+    select.replaceChildren(new Option('Select', ''));
+    for (const g of mapping) select.append(new Option(`${g.grade} (${g.points})`, g.grade));
+    select.value = mapping.some((g) => g.grade === current) ? current : '';
+  }
+
+  function addRow(values: { name?: string; credits?: string; grade?: string } = {}, focus = false) {
+    const li = tpl.content.firstElementChild!.cloneNode(true) as HTMLLIElement;
+    const id = ++rowSeq;
+    const bind = (sel: string, name: string) => {
+      const input = li.querySelector<HTMLInputElement | HTMLSelectElement>(sel)!;
+      input.id = `${name}-${id}`;
+      const label = input.parentElement!.querySelector('label')!;
+      label.htmlFor = input.id;
+      return input;
+    };
+    (bind('[data-name]', 'name') as HTMLInputElement).value = values.name ?? '';
+    (bind('[data-credits]', 'credits') as HTMLInputElement).value = values.credits ?? '';
+    fillGradeOptions(bind('[data-grade]', 'grade') as HTMLSelectElement, values.grade);
+    rowsEl.append(li);
+    renumber();
+    if (focus) li.querySelector<HTMLInputElement>('[data-name]')!.focus();
+  }
+
+  function renumber() {
+    [...rowsEl.children].forEach((li, i) => {
+      const n = i + 1;
+      li.querySelector('[data-name]')!.parentElement!.querySelector('label')!.textContent = `Course ${n} name`;
+      li.querySelector('[data-credits]')!.parentElement!.querySelector('label')!.textContent = `Course ${n} credit hours`;
+      li.querySelector('[data-grade]')!.parentElement!.querySelector('label')!.textContent = `Course ${n} grade`;
+      const rm = li.querySelector<HTMLButtonElement>('[data-remove]')!;
+      rm.setAttribute('aria-label', `Remove course ${n}`);
+      rm.disabled = rowsEl.children.length === 1;
+    });
+  }
+
+  const readRows = () =>
+    [...rowsEl.children].map((li) => ({
+      name: li.querySelector<HTMLInputElement>('[data-name]')!.value.trim(),
+      credits: li.querySelector<HTMLInputElement>('[data-credits]')!.value.trim(),
+      grade: li.querySelector<HTMLSelectElement>('[data-grade]')!.value,
+    }));
+
+  function syncUrl() {
+    const rows = readRows().filter((r) => r.name || r.credits || r.grade);
+    const clean = (s: string) => s.replace(/[~|]/g, ' ');
+    const base = baseScale().grades;
+    const edited = mapping.some((g, i) => g.points !== base[i]?.points);
+    writeParams({
+      r: rows.map((r) => `${clean(r.name)}~${r.credits}~${r.grade}`).join('|'),
+      scale: scaleSelect.selectedIndex > 0 ? scaleSelect.value : '',
+      s: edited ? mapping.map((g) => `${g.grade}:${g.points}`).join(',') : '',
+    });
+  }
+
+  function update(fromSubmit = false) {
+    syncUrl();
+    const rows = readRows();
+    const filled = rows.filter((r) => r.credits !== '' || r.grade !== '');
+    out.replaceChildren();
+    copyBtn.disabled = true;
+    if (filled.length === 0 && !fromSubmit) return;
+    const incomplete = filled.findIndex((r) => r.credits === '' || r.grade === '');
+    if (incomplete >= 0 && fromSubmit) {
+      const p = document.createElement('p');
+      p.className = 'error-text';
+      p.textContent = `Course ${rows.indexOf(filled[incomplete]!) + 1} needs both credit hours and a grade. Incomplete rows are left out.`;
+      out.append(p);
+    }
+    const r = gpa(
+      filled.filter((x) => x.credits !== '' && x.grade !== '').map((x) => ({ credits: num(x.credits), grade: x.grade })),
+      mapping,
+    );
+    if (!r.ok) {
+      const p = document.createElement('p');
+      p.className = 'error-text';
+      p.textContent = fromSubmit || filled.some((x) => x.credits && x.grade) ? r.error : '';
+      if (p.textContent) out.append(p);
+      return;
+    }
+    const v = r.value;
+    const main = document.createElement('p');
+    main.className = 'result-main';
+    main.textContent = `GPA: ${v.value.toFixed(2)}`;
+    const sub = document.createElement('p');
+    sub.className = 'result-sub';
+    sub.textContent = `${v.rowsUsed} ${v.rowsUsed === 1 ? 'course' : 'courses'}, ${fmt(v.totalCredits)} credit hours, ${fmt(v.totalQualityPoints)} grade points.`;
+    const f1 = document.createElement('p');
+    f1.className = 'formula';
+    f1.textContent = `${v.formula}\n${v.working}`;
+    f1.style.whiteSpace = 'pre-line';
+    out.append(main, sub, f1);
+    copyText = `GPA ${v.value.toFixed(2)} (${fmt(v.totalCredits)} credit hours)`;
+    copyBtn.disabled = false;
+  }
+
+  function loadScale(custom?: string | null) {
+    mapping = baseScale().grades.map((g) => ({ ...g }));
+    if (custom) {
+      for (const pair of custom.split(',')) {
+        const [grade, pts] = pair.split(':');
+        const m = mapping.find((g) => g.grade === grade);
+        if (m && Number.isFinite(num(pts))) m.points = num(pts);
+      }
+    }
+    renderScaleEditor();
+    rowsEl.querySelectorAll<HTMLSelectElement>('[data-grade]').forEach((s) => fillGradeOptions(s));
+  }
+
+  // Events
+  scaleSelect.addEventListener('change', () => {
+    loadScale();
+    update();
+  });
+  scaleGrid.addEventListener('input', (e) => {
+    const input = e.target as HTMLInputElement;
+    const g = mapping.find((m) => m.grade === input.dataset.grade);
+    const v = num(input.value);
+    if (g && Number.isFinite(v) && v >= 0) {
+      g.points = v;
+      rowsEl.querySelectorAll<HTMLSelectElement>('[data-grade]').forEach((s) => fillGradeOptions(s));
+      update();
+    }
+  });
+  document.getElementById('scale-reset')!.addEventListener('click', () => {
+    loadScale();
+    update();
+    status.textContent = 'Grade points reset to the default scale.';
+  });
+  document.getElementById('gpa-add')!.addEventListener('click', () => {
+    addRow({}, true);
+    status.textContent = `Course ${rowsEl.children.length} added.`;
+  });
+  rowsEl.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-remove]');
+    if (!btn || rowsEl.children.length === 1) return;
+    const li = btn.closest('li')!;
+    const index = [...rowsEl.children].indexOf(li);
+    li.remove();
+    renumber();
+    const next = rowsEl.children[Math.min(index, rowsEl.children.length - 1)];
+    next?.querySelector<HTMLButtonElement>('[data-remove]')?.focus();
+    status.textContent = `Course ${index + 1} removed.`;
+    update();
+  });
+  form.addEventListener('input', (e) => {
+    if (!scaleGrid.contains(e.target as Node)) update();
+  });
+  form.addEventListener('change', (e) => {
+    if ((e.target as HTMLElement).matches('[data-grade]')) update();
+  });
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    update(true);
+  });
+  wireCopyButton(copyBtn, () => copyText, status);
+
+  // Initial state from URL
+  const params = readParams();
+  if (params.get('scale')) scaleSelect.value = params.get('scale')!;
+  loadScale(params.get('s'));
+  if (params.get('s')) (document.getElementById('scale-edit') as HTMLDetailsElement).open = true;
+  const saved = (params.get('r') ?? '').split('|').filter(Boolean);
+  if (saved.length) {
+    for (const row of saved.slice(0, 50)) {
+      const [name = '', credits = '', grade = ''] = row.split('~');
+      addRow({ name, credits, grade });
+    }
+  } else {
+    for (let i = 0; i < 4; i++) addRow();
+  }
+  update();
+</script>
+
+<style>
+  .scale-field {
+    max-width: 22rem;
+    margin-bottom: var(--space-2);
+  }
+  .scale-edit {
+    margin-bottom: var(--space-3);
+  }
+  .scale-edit summary {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap);
+    cursor: pointer;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .scale-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+  }
+</style>

@@ -11,7 +11,8 @@
     "build": "node node_modules/astro/bin/astro.mjs build",
     "preview": "node node_modules/astro/bin/astro.mjs preview",
     "check": "node node_modules/astro/bin/astro.mjs check",
-    "astro": "node node_modules/astro/bin/astro.mjs"
+    "astro": "node node_modules/astro/bin/astro.mjs",
+    "test:unit": "node node_modules/vitest/vitest.mjs run"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.4",
@@ -20,6 +21,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.1"
   }
 }

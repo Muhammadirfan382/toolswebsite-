@@ -1,10 +1,29 @@
 ---
 import ToolLayout from '../layouts/ToolLayout.astro';
-import ComingSoon from '../components/ComingSoon.astro';
 import { getTool } from '../data/tools';
 import { SITE } from '../data/site';
 
 const tool = getTool('percentage-calculator');
+
+interface Field {
+  key: 'x' | 'y';
+  label: string;
+  suffix?: string;
+}
+interface Mode {
+  id: string;
+  tab: string;
+  title: string;
+  fields: Field[];
+  op?: boolean;
+}
+const modes: Mode[] = [
+  { id: 'of', tab: 'X% of Y', title: 'What is X% of Y?', fields: [{ key: 'x', label: 'Percentage (X)', suffix: '%' }, { key: 'y', label: 'Number (Y)' }] },
+  { id: 'what', tab: 'X is what % of Y', title: 'X is what percent of Y?', fields: [{ key: 'x', label: 'Value (X)' }, { key: 'y', label: 'Total (Y)' }] },
+  { id: 'change', tab: '% change', title: 'Percentage increase or decrease', fields: [{ key: 'x', label: 'From (old value)' }, { key: 'y', label: 'To (new value)' }] },
+  { id: 'marks', tab: 'Marks %', title: 'Marks percentage', fields: [{ key: 'x', label: 'Marks obtained' }, { key: 'y', label: 'Total marks' }] },
+  { id: 'addsub', tab: 'Add / subtract %', title: 'Add or subtract a percentage', fields: [{ key: 'y', label: 'Amount (Y)' }, { key: 'x', label: 'Percentage (X)', suffix: '%' }], op: true },
+];
 ---
 
 <ToolLayout
@@ -13,7 +32,165 @@ const tool = getTool('percentage-calculator');
   description={`${tool.description} Free, no sign-up, and it runs in your browser.`}
   h1={`${tool.name} Online Free`}
   intro={tool.description}
+  privacySubject="numbers"
 >
-  <ComingSoon tool={tool} />
+  <div data-tabs id="pct-tabs">
+    <div role="tablist" class="tablist" aria-label="Percentage calculations" hidden>
+      {
+        modes.map((m) => (
+          <button type="button" role="tab" id={`tab-${m.id}`} aria-controls={`panel-${m.id}`} aria-selected="false" tabindex="-1">
+            {m.tab}
+          </button>
+        ))
+      }
+    </div>
+
+    {
+      modes.map((m) => (
+        <section role="tabpanel" id={`panel-${m.id}`} aria-labelledby={`tab-${m.id}`} class="panel">
+          <h2 class="panel-title">{m.title}</h2>
+          <form data-mode={m.id} novalidate>
+            <div class="form-grid">
+              {m.fields.map((f) => (
+                <div class="field">
+                  <label for={`${m.id}-${f.key}`}>{f.label}</label>
+                  <input type="text" inputmode="decimal" autocomplete="off" id={`${m.id}-${f.key}`} data-key={f.key} />
+                </div>
+              ))}
+              {m.op && (
+                <fieldset class="segmented">
+                  <legend class="visually-hidden">Add or subtract</legend>
+                  <label>
+                    <input type="radio" name="op" value="add" checked /> Add
+                  </label>
+                  <label>
+                    <input type="radio" name="op" value="subtract" /> Subtract
+                  </label>
+                </fieldset>
+              )}
+            </div>
+            <div class="actions">
+              <button type="submit" class="btn">Calculate</button>
+              <button type="button" class="btn btn--secondary" data-copy disabled>Copy result</button>
+            </div>
+          </form>
+          <div class="result-card" data-result aria-live="polite" />
+        </section>
+      ))
+    }
+  </div>
+  <p class="visually-hidden" aria-live="polite" id="pct-copy-status"></p>
+
   <!-- TODO (Prompt 8): long content goes in slot="content" -->
 </ToolLayout>
+
+<script>
+  import {
+    addSubtractPercent,
+    marksPercent,
+    percentChange,
+    percentOf,
+    whatPercent,
+    type Worked,
+  } from '../lib/calc/percentage';
+  import { num, type CalcResult } from '../lib/calc/common';
+  import { initTabs } from '../lib/tabs';
+  import { readParams, writeParams } from '../lib/url-state';
+  import { wireCopyButton } from '../lib/clipboard';
+
+  type Op = 'add' | 'subtract';
+  const compute: Record<string, (x: number, y: number, op: Op) => CalcResult<Worked>> = {
+    of: (x, y) => percentOf(x, y),
+    what: (x, y) => whatPercent(x, y),
+    change: (x, y) => percentChange(x, y),
+    marks: (x, y) => marksPercent(x, y),
+    addsub: (x, y, op) => addSubtractPercent(y, x, op),
+  };
+
+  const params = readParams();
+  const status = document.getElementById('pct-copy-status')!;
+  const copyTexts = new Map<string, string>();
+  let active = '';
+
+  const forms = [...document.querySelectorAll<HTMLFormElement>('form[data-mode]')];
+
+  const getOp = (form: HTMLFormElement): Op =>
+    (form.querySelector<HTMLInputElement>('input[name="op"]:checked')?.value as Op) ?? 'add';
+
+  function syncUrl() {
+    const form = forms.find((f) => f.dataset.mode === active);
+    if (!form) return;
+    const val = (k: string) => form.querySelector<HTMLInputElement>(`[data-key="${k}"]`)?.value ?? '';
+    writeParams({ m: active === 'of' ? '' : active, x: val('x'), y: val('y'), op: active === 'addsub' && getOp(form) === 'subtract' ? 'subtract' : '' });
+  }
+
+  function update(form: HTMLFormElement, fromSubmit = false) {
+    const mode = form.dataset.mode!;
+    const out = form.parentElement!.querySelector<HTMLElement>('[data-result]')!;
+    const copyBtn = form.querySelector<HTMLButtonElement>('[data-copy]')!;
+    const xs = form.querySelector<HTMLInputElement>('[data-key="x"]')!.value;
+    const ys = form.querySelector<HTMLInputElement>('[data-key="y"]')!.value;
+    syncUrl();
+    out.replaceChildren();
+    copyBtn.disabled = true;
+    if (!fromSubmit && (xs.trim() === '' || ys.trim() === '')) return;
+
+    const r = compute[mode]!(num(xs), num(ys), getOp(form));
+    if (!r.ok) {
+      const p = document.createElement('p');
+      p.className = 'error-text';
+      p.textContent = /Enter/.test(r.error) && (xs || ys) ? `${r.error} Use digits only, like 12.5.` : r.error;
+      out.append(p);
+      return;
+    }
+    const main = document.createElement('p');
+    main.className = 'result-main';
+    main.textContent = r.value.answer;
+    const formula = document.createElement('p');
+    formula.className = 'formula';
+    formula.textContent = r.value.formula;
+    const steps = document.createElement('ol');
+    steps.className = 'steps';
+    steps.setAttribute('aria-label', 'Working');
+    for (const s of r.value.steps) {
+      const li = document.createElement('li');
+      li.textContent = s;
+      steps.append(li);
+    }
+    out.append(main, formula, steps);
+    copyTexts.set(mode, r.value.answer);
+    copyBtn.disabled = false;
+  }
+
+  for (const form of forms) {
+    const mode = form.dataset.mode!;
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      update(form, true);
+    });
+    form.addEventListener('input', () => update(form));
+    wireCopyButton(form.querySelector<HTMLButtonElement>('[data-copy]')!, () => copyTexts.get(mode) ?? '', status);
+  }
+
+  // Restore shared state
+  const initialMode = params.get('m') ?? 'of';
+  const initialForm = forms.find((f) => f.dataset.mode === initialMode) ?? forms[0]!;
+  active = initialForm.dataset.mode!;
+  for (const k of ['x', 'y'] as const) {
+    const v = params.get(k);
+    if (v) initialForm.querySelector<HTMLInputElement>(`[data-key="${k}"]`)!.value = v;
+  }
+  if (params.get('op') === 'subtract') {
+    initialForm.querySelector<HTMLInputElement>('input[value="subtract"]')?.click();
+  }
+
+  initTabs(
+    document.getElementById('pct-tabs')!,
+    (panelId) => {
+      active = panelId.replace('panel-', '');
+      syncUrl();
+    },
+    `panel-${active}`,
+  );
+  update(initialForm);
+</script>

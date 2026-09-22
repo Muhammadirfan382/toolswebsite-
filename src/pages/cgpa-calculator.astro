@@ -1,8 +1,8 @@
 ---
 import ToolLayout from '../layouts/ToolLayout.astro';
-import ComingSoon from '../components/ComingSoon.astro';
 import { getTool } from '../data/tools';
 import { SITE } from '../data/site';
+import { CGPA_FORMULA_PRESETS, CGPA_SCALES } from '../data/presets';
 
 const tool = getTool('cgpa-calculator');
 ---
@@ -13,7 +13,307 @@ const tool = getTool('cgpa-calculator');
   description={`${tool.description} Free, no sign-up, and it runs in your browser.`}
   h1={`${tool.name} Online Free`}
   intro={tool.description}
+  privacySubject="grades"
 >
-  <ComingSoon tool={tool} />
+  <form class="panel" id="cgpa-form" novalidate>
+    <fieldset class="segmented">
+      <legend class="label-strong">GPA scale</legend>
+      {
+        CGPA_SCALES.map((s, i) => (
+          <label>
+            <input type="radio" name="scale" value={s} checked={i === 0} /> {s === 10 ? '10' : `${s}.0`}
+          </label>
+        ))
+      }
+    </fieldset>
+
+    <div class="rows-head" aria-hidden="true" style="--cols: 1fr 1fr var(--tap)">
+      <span>Semester GPA</span><span>Credit hours</span><span></span>
+    </div>
+    <ol class="rows" id="cgpa-rows" aria-label="Semesters" style="--cols: 1fr 1fr var(--tap)"></ol>
+
+    <div class="actions">
+      <button type="button" class="btn btn--secondary" id="cgpa-add">+ Add semester</button>
+      <button type="submit" class="btn">Calculate</button>
+      <button type="button" class="btn btn--secondary" id="cgpa-copy" disabled>Copy result</button>
+    </div>
+  </form>
+
+  <div id="cgpa-result" class="result-card" aria-live="polite"></div>
+
+  <section class="panel convert" aria-labelledby="conv-h">
+    <h2 id="conv-h" class="panel-title">CGPA to percentage</h2>
+    <p class="warn-text">Formulas vary by university — check your institution's official rule.</p>
+    <div class="form-grid">
+      <div class="field">
+        <label for="conv-cgpa">CGPA</label>
+        <input type="text" inputmode="decimal" id="conv-cgpa" autocomplete="off" aria-describedby="conv-cgpa-hint" />
+        <span class="hint" id="conv-cgpa-hint">Filled in from the result above, or type your own.</span>
+      </div>
+      <div class="field">
+        <label for="conv-preset">Formula</label>
+        <select id="conv-preset">
+          {CGPA_FORMULA_PRESETS.map((p) => <option value={p.id} data-scale={p.scale} data-subtract={p.subtract} data-multiply={p.multiply}>{p.label}</option>)}
+          <option value="custom">Custom formula</option>
+        </select>
+      </div>
+    </div>
+    <p class="formula-edit">
+      Percentage = (CGPA −
+      <label class="visually-hidden" for="conv-sub">Number to subtract</label>
+      <input type="text" inputmode="decimal" id="conv-sub" class="mini" value="0" />
+      ) ×
+      <label class="visually-hidden" for="conv-mul">Multiplier</label>
+      <input type="text" inputmode="decimal" id="conv-mul" class="mini" value="25" />
+    </p>
+    <div id="conv-result" class="result-card" aria-live="polite"></div>
+  </section>
+  <p class="visually-hidden" aria-live="polite" id="cgpa-status"></p>
+
+  <template id="cgpa-row-tpl">
+    <li class="row">
+      <div class="field">
+        <label class="row-label">Semester GPA</label>
+        <input type="text" inputmode="decimal" data-gpa autocomplete="off" />
+      </div>
+      <div class="field">
+        <label class="row-label">Credit hours</label>
+        <input type="text" inputmode="decimal" data-credits autocomplete="off" />
+      </div>
+      <button type="button" class="remove" data-remove>✕</button>
+    </li>
+  </template>
+
   <!-- TODO (Prompt 8): long content goes in slot="content" -->
 </ToolLayout>
+
+<script>
+  import { cgpa, cgpaToPercent } from '../lib/calc/gpa';
+  import { fmt, num } from '../lib/calc/common';
+  import { readParams, writeParams } from '../lib/url-state';
+  import { wireCopyButton } from '../lib/clipboard';
+
+  const form = document.getElementById('cgpa-form') as HTMLFormElement;
+  const rowsEl = document.getElementById('cgpa-rows') as HTMLOListElement;
+  const tpl = document.getElementById('cgpa-row-tpl') as HTMLTemplateElement;
+  const out = document.getElementById('cgpa-result')!;
+  const status = document.getElementById('cgpa-status')!;
+  const copyBtn = document.getElementById('cgpa-copy') as HTMLButtonElement;
+  const convCgpa = document.getElementById('conv-cgpa') as HTMLInputElement;
+  const convPreset = document.getElementById('conv-preset') as HTMLSelectElement;
+  const convSub = document.getElementById('conv-sub') as HTMLInputElement;
+  const convMul = document.getElementById('conv-mul') as HTMLInputElement;
+  const convOut = document.getElementById('conv-result')!;
+
+  let seq = 0;
+  let copyText = '';
+  let convTouched = false;
+
+  const scale = () => Number(form.querySelector<HTMLInputElement>('input[name="scale"]:checked')!.value);
+  const para = (cls: string, text: string) => {
+    const p = document.createElement('p');
+    p.className = cls;
+    p.textContent = text;
+    return p;
+  };
+
+  function addRow(values: { gpa?: string; credits?: string } = {}, focus = false) {
+    const li = tpl.content.firstElementChild!.cloneNode(true) as HTMLLIElement;
+    const id = ++seq;
+    for (const [sel, key] of [['[data-gpa]', 'gpa'], ['[data-credits]', 'credits']] as const) {
+      const input = li.querySelector<HTMLInputElement>(sel)!;
+      input.id = `${key}-${id}`;
+      input.parentElement!.querySelector('label')!.htmlFor = input.id;
+      input.value = values[key] ?? '';
+    }
+    rowsEl.append(li);
+    renumber();
+    if (focus) li.querySelector<HTMLInputElement>('[data-gpa]')!.focus();
+  }
+
+  function renumber() {
+    [...rowsEl.children].forEach((li, i) => {
+      li.querySelector('[data-gpa]')!.parentElement!.querySelector('label')!.textContent = `Semester ${i + 1} GPA`;
+      li.querySelector('[data-credits]')!.parentElement!.querySelector('label')!.textContent = `Semester ${i + 1} credit hours`;
+      const rm = li.querySelector<HTMLButtonElement>('[data-remove]')!;
+      rm.setAttribute('aria-label', `Remove semester ${i + 1}`);
+      rm.disabled = rowsEl.children.length === 1;
+    });
+  }
+
+  const readRows = () =>
+    [...rowsEl.children].map((li) => ({
+      gpa: li.querySelector<HTMLInputElement>('[data-gpa]')!.value.trim(),
+      credits: li.querySelector<HTMLInputElement>('[data-credits]')!.value.trim(),
+    }));
+
+  function syncUrl() {
+    writeParams({
+      r: readRows().filter((r) => r.gpa || r.credits).map((r) => `${r.gpa}~${r.credits}`).join('|'),
+      sc: scale() === 4 ? '' : scale(),
+      f: convPreset.value,
+      fs: convPreset.value === 'custom' ? convSub.value : '',
+      fm: convPreset.value === 'custom' ? convMul.value : '',
+      c: convTouched ? convCgpa.value : '',
+    });
+  }
+
+  function update(fromSubmit = false) {
+    syncUrl();
+    out.replaceChildren();
+    copyBtn.disabled = true;
+    const rows = readRows().filter((r) => r.gpa !== '' || r.credits !== '');
+    if (rows.length === 0 && !fromSubmit) return convert();
+    const complete = rows.filter((r) => r.gpa !== '' && r.credits !== '');
+    if (fromSubmit && complete.length < rows.length) {
+      out.append(para('error-text', 'Some semesters need both a GPA and credit hours. Incomplete rows are left out.'));
+    }
+    const r = cgpa(complete.map((x) => ({ points: num(x.gpa), credits: num(x.credits) })), scale());
+    if (!r.ok) {
+      if (fromSubmit || complete.length) out.append(para('error-text', r.error));
+      return convert();
+    }
+    const v = r.value;
+    out.append(
+      para('result-main', `CGPA: ${v.value.toFixed(2)} / ${scale()}`),
+      para('result-sub', `${v.rowsUsed} ${v.rowsUsed === 1 ? 'semester' : 'semesters'}, ${fmt(v.totalCredits)} credit hours.`),
+    );
+    const f = para('formula', `${v.formula}\n${v.working}`);
+    f.style.whiteSpace = 'pre-line';
+    out.append(f);
+    copyText = `CGPA ${v.value.toFixed(2)} on a ${scale()}-point scale (${fmt(v.totalCredits)} credit hours)`;
+    copyBtn.disabled = false;
+    if (!convTouched) convCgpa.value = v.value.toFixed(2);
+    convert();
+  }
+
+  function applyPreset() {
+    const opt = convPreset.selectedOptions[0]!;
+    if (convPreset.value !== 'custom') {
+      convSub.value = opt.dataset.subtract!;
+      convMul.value = opt.dataset.multiply!;
+    }
+  }
+
+  function convert() {
+    convOut.replaceChildren();
+    if (convCgpa.value.trim() === '') return;
+    const value = num(convCgpa.value);
+    const r = cgpaToPercent(value, { subtract: num(convSub.value), multiply: num(convMul.value) });
+    if (!r.ok) {
+      convOut.append(para('error-text', r.error));
+      return;
+    }
+    const expected = Number(convPreset.selectedOptions[0]?.dataset.scale ?? 0);
+    convOut.append(para('result-main', `${fmt(r.value.value)}%`), para('formula', r.value.working));
+    if (expected && value > expected) {
+      convOut.append(para('warn-text', `This formula is meant for a ${expected}-point scale, but the CGPA is above ${expected}.`));
+    }
+  }
+
+  // Events
+  document.getElementById('cgpa-add')!.addEventListener('click', () => {
+    addRow({}, true);
+    status.textContent = `Semester ${rowsEl.children.length} added.`;
+  });
+  rowsEl.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-remove]');
+    if (!btn || rowsEl.children.length === 1) return;
+    const li = btn.closest('li')!;
+    const index = [...rowsEl.children].indexOf(li);
+    li.remove();
+    renumber();
+    rowsEl.children[Math.min(index, rowsEl.children.length - 1)]?.querySelector<HTMLButtonElement>('[data-remove]')?.focus();
+    status.textContent = `Semester ${index + 1} removed.`;
+    update();
+  });
+  form.addEventListener('input', () => update());
+  form.addEventListener('change', (e) => {
+    if ((e.target as HTMLInputElement).name === 'scale') {
+      // Suggest a formula that matches the new scale.
+      const match = [...convPreset.options].find((o) => Number(o.dataset.scale) === scale());
+      if (match && convPreset.value !== 'custom') {
+        convPreset.value = match.value;
+        applyPreset();
+      }
+      update();
+    }
+  });
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    update(true);
+  });
+  convCgpa.addEventListener('input', () => {
+    convTouched = convCgpa.value.trim() !== '';
+    syncUrl();
+    convert();
+  });
+  convPreset.addEventListener('change', () => {
+    applyPreset();
+    syncUrl();
+    convert();
+  });
+  for (const input of [convSub, convMul]) {
+    input.addEventListener('input', () => {
+      convPreset.value = 'custom';
+      syncUrl();
+      convert();
+    });
+  }
+  wireCopyButton(copyBtn, () => copyText, status);
+
+  // Initial state from URL
+  const params = readParams();
+  const sc = params.get('sc');
+  if (sc) form.querySelector<HTMLInputElement>(`input[name="scale"][value="${CSS.escape(sc)}"]`)?.click();
+  const preset = params.get('f');
+  if (preset && [...convPreset.options].some((o) => o.value === preset)) convPreset.value = preset;
+  else {
+    const match = [...convPreset.options].find((o) => Number(o.dataset.scale) === scale());
+    if (match) convPreset.value = match.value;
+  }
+  applyPreset();
+  if (convPreset.value === 'custom') {
+    convSub.value = params.get('fs') ?? '0';
+    convMul.value = params.get('fm') ?? '1';
+  }
+  if (params.get('c')) {
+    convCgpa.value = params.get('c')!;
+    convTouched = true;
+  }
+  const saved = (params.get('r') ?? '').split('|').filter(Boolean);
+  if (saved.length) {
+    for (const row of saved.slice(0, 30)) {
+      const [g = '', c = ''] = row.split('~');
+      addRow({ gpa: g, credits: c });
+    }
+  } else {
+    for (let i = 0; i < 4; i++) addRow();
+  }
+  update();
+</script>
+
+<style>
+  .segmented {
+    margin-bottom: var(--space-3);
+  }
+  .label-strong {
+    font-weight: 600;
+    font-size: var(--text-sm);
+    padding: 0 var(--space-2);
+  }
+  .convert {
+    margin-top: var(--space-4);
+  }
+  .formula-edit {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    font-family: var(--font-mono);
+    margin: var(--space-3) 0 0;
+  }
+  .mini {
+    width: 6rem;
+  }
+</style>

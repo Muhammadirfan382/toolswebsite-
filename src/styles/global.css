@@ -284,3 +284,289 @@ textarea {
   margin: 0 0 var(--space-4);
   list-style: none;
 }
+
+/* ==========================================================================
+   Tool UI: forms, results, tabs (shared by all tools)
+   ========================================================================== */
+.panel {
+  padding: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.form-grid {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  align-items: end;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.field > label,
+.field > .label {
+  font-weight: 600;
+  font-size: var(--text-sm);
+}
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+}
+.field .hint {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+input[type='checkbox'],
+input[type='radio'] {
+  min-height: auto;
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent);
+}
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--tap);
+  cursor: pointer;
+}
+
+input[type='range'] {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  accent-color: var(--accent);
+}
+input[type='color'] {
+  padding: 2px;
+  width: 64px;
+}
+
+.segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border: 0;
+  margin: 0;
+  background: var(--surface-2);
+  border-radius: var(--radius);
+}
+.segmented legend {
+  padding: 0;
+}
+.segmented label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-weight: 500;
+}
+.segmented label:has(input:checked) {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: var(--shadow);
+}
+.segmented label:has(input:focus-visible) {
+  outline: 3px solid var(--focus);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.result-card {
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  background: var(--accent-soft);
+  border-radius: var(--radius);
+}
+.result-card:empty {
+  display: none;
+}
+.result-main {
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0 0 var(--space-2);
+  overflow-wrap: anywhere;
+}
+.result-sub {
+  margin: 0 0 var(--space-2);
+}
+.formula {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  background: var(--surface);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  margin: var(--space-2) 0 0;
+  overflow-wrap: anywhere;
+}
+.steps {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  margin: var(--space-2) 0 0;
+  padding-left: var(--space-4);
+}
+.error-text {
+  color: var(--danger);
+  font-weight: 600;
+  margin: var(--space-2) 0 0;
+}
+.warn-text {
+  color: var(--warning);
+  font-weight: 600;
+}
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
+}
+.stat {
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  border-radius: var(--radius);
+}
+.stat dt {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+.stat dd {
+  margin: 0;
+  font-weight: 700;
+  font-size: var(--text-lg);
+  overflow-wrap: anywhere;
+}
+
+/* Tabs */
+.tablist {
+  display: flex;
+  gap: var(--space-1);
+  overflow-x: auto;
+  scrollbar-width: thin;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--space-3);
+}
+.tablist [role='tab'] {
+  flex: none;
+  min-height: var(--tap);
+  padding: 0 var(--space-3);
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tablist [role='tab'][aria-selected='true'] {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+[data-tabs]:not(.tabs-ready) [role='tabpanel'] + [role='tabpanel'] {
+  margin-top: var(--space-4);
+}
+.panel-title {
+  font-size: var(--text-lg);
+  margin: 0 0 var(--space-3);
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: var(--text-sm);
+}
+th,
+td {
+  text-align: left;
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Repeating input rows (GPA courses, CGPA semesters). Set --cols for the desktop grid. */
+.rows {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+.rows-head {
+  display: none;
+}
+.rows > .row {
+  display: grid;
+  grid-template-columns: 1fr 1fr var(--tap);
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  align-items: end;
+}
+.rows > .row > .field.wide {
+  grid-column: 1 / -1;
+}
+.row .remove {
+  width: var(--tap);
+  height: var(--tap);
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.row .remove:hover:not(:disabled) {
+  color: var(--danger);
+  background: var(--surface-2);
+}
+.row .remove:disabled {
+  color: var(--border-strong);
+  cursor: default;
+}
+@media (min-width: 40rem) {
+  .rows-head {
+    display: grid;
+    grid-template-columns: var(--cols);
+    gap: var(--space-2);
+    padding: 0 var(--space-2);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+  .rows > .row {
+    grid-template-columns: var(--cols);
+    border: 0;
+    padding: 0 var(--space-2);
+  }
+  .rows > .row > .field.wide {
+    grid-column: auto;
+  }
+  .row .row-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
