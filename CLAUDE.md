@@ -55,3 +55,24 @@ and must stay true in code.
   directly instead of `.bin` shims. Keep it that way.
 - `build.format: 'file'` + `trailingSlash: 'never'` so `/about` is served from `about.html`
   on Cloudflare Pages without a trailing-slash redirect.
+
+## Phase 3 rules
+1. Content workflow: every article and every translated page is created with
+   draft: true. Only the owner changes it to false after review. Never publish drafts.
+2. Every article must add something a generic article doesn't: steps tested on our own
+   tools with real screenshots (captured by Playwright from our site), exact settings that
+   work, and honest limitations. No filler intros, no "In today's digital world".
+3. No invented facts, numbers, studies, quotes, dates, or product features. Any claim about
+   other software (Windows, macOS, iOS, Android, Word, Google Docs, Canva, Photoshop,
+   iLovePDF, Smallpdf, PDF24, Adobe) must be marked <!-- VERIFY: ... --> so the owner can
+   check it against the current version before publishing. Menus and feature names change often.
+4. Keyword cannibalization: a guide must not target the same primary keyword as a tool page.
+   Guides target "how to / why / what / vs" questions and link to the tool as the solution.
+5. Translations: never machine-translate and publish. Translated pages are drafts with a
+   review sheet for a native speaker. Localized keywords come from docs/keywords-<lang>.csv
+   (provided by the owner from Keyword Planner); if that file doesn't exist, stop and ask.
+6. Author and trust: articles show a real author ({{AUTHOR_NAME}}), published and updated
+   dates, and a "How we tested" note. No fake author personas.
+7. Comparison pages: factual, neutral tone, dated ("Checked on <date>"), no disparaging
+   claims, no competitor logos. Every competitor fact carries a VERIFY marker until the
+   owner checks it.
