@@ -75,7 +75,7 @@ If you already have some pages as PDFs, create a PDF from the photos here and th
 - **Applications and forms:** combine photos of a certificate, a transcript and an ID page into one file to upload.
 - **Receipts and invoices:** gather a month of receipt photos into a single PDF for an expense claim or your accountant.
 - **Homework and notes:** turn photos of handwritten pages into one document a teacher can open on any device.
-- **Small sellers:** put product photos and a price list together in a PDF catalogue to send to customers.
+- **Small sellers:** put product photos and a price list together in a PDF catalog to send to customers.
 
 ## Private and free
 

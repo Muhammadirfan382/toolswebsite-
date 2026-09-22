@@ -70,6 +70,10 @@ If you need a smaller file, you probably want the opposite: [PNG to JPG](/png-to
 
 If you are unsure which to use, JPG is the most widely accepted format for photos, and PNG is the safest choice for anything with text or sharp edges.
 
+## After converting
+
+Open one of the new PNG files to check it before deleting anything. If a program or website still rejects it, check whether it also has a size or dimension limit: a PNG photo can be much larger than the original JPG, and [Resize Image](/resize-image) can bring its dimensions down.
+
 ## Private by design
 
 Your images are converted inside your web browser. They are not uploaded to our servers or anywhere else, so personal photos and documents stay on your device. Converting also leaves out hidden details such as the location where a photo was taken.

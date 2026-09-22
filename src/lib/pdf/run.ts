@@ -1,6 +1,6 @@
 /** Run pdf-lib operations in a Web Worker, with a main-thread fallback. */
 import { runTask, type ProgressFn } from '../worker-utils';
-import { runPdfOp, type PdfOp, type PdfOpResult } from './ops';
+import { loadPdfLib, runPdfOp, type PdfOp, type PdfOpResult } from './ops';
 import { pdfErrorMessage } from './errors';
 
 export function pdfOp(req: PdfOp, onProgress?: ProgressFn): Promise<PdfOpResult> {
@@ -18,6 +18,14 @@ export function opErrorMessage(err: unknown, fallbackName: string): string {
   const m = /^(encrypted|invalid pdf): (.+?): /.exec(msg);
   if (m) return pdfErrorMessage(new Error(m[1]), m[2]!);
   return pdfErrorMessage(err, fallbackName);
+}
+
+/**
+ * Called when the user picks files: loads pdf-lib now, so the tool still works if the
+ * connection drops before they press the button. (pdf.js loads for the file preview.)
+ */
+export function warmUpPdfEngines(): void {
+  void loadPdfLib().catch(() => {});
 }
 
 export const pdfBlob = (bytes: Uint8Array) => new Blob([bytes as BlobPart], { type: 'application/pdf' });

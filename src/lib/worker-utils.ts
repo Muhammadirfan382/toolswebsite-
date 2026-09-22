@@ -84,7 +84,7 @@ export async function runTask<TIn, TOut>(opts: RunTaskOptions<TIn, TOut>): Promi
     };
     const onAbort = () => {
       cleanup();
-      reject(signal?.reason ?? new DOMException('Cancelled', 'AbortError'));
+      reject(signal?.reason ?? new DOMException('Canceled', 'AbortError'));
     };
     signal?.addEventListener('abort', onAbort, { once: true });
 

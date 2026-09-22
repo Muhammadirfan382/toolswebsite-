@@ -17,7 +17,10 @@
     "test:unit": "node node_modules/vitest/vitest.mjs run",
     "test:e2e": "node node_modules/@playwright/test/cli.js test",
     "test": "npm run build && npm run test:e2e",
-    "test:all": "npm run test:unit && npm run test"
+    "test:all": "npm run test:unit && npm run test",
+    "audit": "node scripts/audit-dist.mjs",
+    "check:bundles": "node scripts/check-bundles.mjs",
+    "verify": "npm run check && npm run test:unit && npm run build && npm run audit && npm run check:bundles && npm run test:e2e"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.4",

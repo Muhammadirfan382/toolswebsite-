@@ -37,7 +37,7 @@ const tool = getTool('merge-pdf');
   import { progressFor } from '../lib/progress';
   import { pdfInfo } from '../lib/pdf/file-info';
   import { parsePageRange } from '../lib/pdf/ranges';
-  import { largeFileWarning, opErrorMessage, pdfBlob, pdfOp } from '../lib/pdf/run';
+  import { largeFileWarning, opErrorMessage, pdfBlob, pdfOp, warmUpPdfEngines } from '../lib/pdf/run';
 
   const dropEl = document.getElementById('mp-drop')!;
   const drop = fileDropFor(dropEl)!;
@@ -104,6 +104,7 @@ const tool = getTool('merge-pdf');
   dropEl.addEventListener('files-changed', async (e) => {
     result.clear();
     const files = (e as CustomEvent<File[]>).detail;
+    if (files.length) warmUpPdfEngines();
     const warnings: string[] = [];
     for (const f of files) {
       const info = await pdfInfo(f);
@@ -173,13 +174,17 @@ const tool = getTool('merge-pdf');
   }
   :global(.range-field) {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: var(--space-2);
     margin-top: var(--space-1);
     font-size: var(--text-sm);
   }
   :global(.range-field input) {
-    width: 8rem;
+    width: 100%;
+    max-width: 8rem;
+    min-width: 4rem;
+    flex: 1;
     min-height: var(--tap);
     padding: var(--space-1) var(--space-2);
   }

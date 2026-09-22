@@ -6,7 +6,12 @@ import type { ProgressFn } from '../worker-utils';
 
 type PdfLib = typeof import('pdf-lib');
 let lib: Promise<PdfLib> | null = null;
-const loadPdfLib = () => (lib ??= import('pdf-lib'));
+/** Load pdf-lib once. Also called when the user picks a file, so it keeps working if they go offline. */
+export const loadPdfLib = () =>
+  (lib ??= import('pdf-lib').catch((err) => {
+    lib = null;
+    throw new Error(`engine unavailable: ${err instanceof Error ? err.message : err}`);
+  }));
 
 export const PAGE_SIZES = {
   a4: [595.28, 841.89],

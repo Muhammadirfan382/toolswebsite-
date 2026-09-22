@@ -4,6 +4,9 @@ import { getTool } from '../data/tools';
 import { GRADE_SCALES } from '../data/presets';
 
 const tool = getTool('gpa-calculator');
+const defaultGrades = GRADE_SCALES[0]!.grades;
+// Four empty rows are rendered in HTML so nothing shifts when the script starts.
+const initialRows = [1, 2, 3, 4];
 ---
 
 <ToolLayout tool={tool} privacySubject="grades">
@@ -25,7 +28,30 @@ const tool = getTool('gpa-calculator');
     <div class="rows-head" aria-hidden="true" style="--cols: 2fr 1fr 1fr var(--tap)">
       <span>Course (optional)</span><span>Credits</span><span>Grade</span><span></span>
     </div>
-    <ol class="rows" id="gpa-rows" aria-label="Courses" style="--cols: 2fr 1fr 1fr var(--tap)"></ol>
+    <ol class="rows" id="gpa-rows" aria-label="Courses" style="--cols: 2fr 1fr 1fr var(--tap)">
+      {
+        initialRows.map((n) => (
+          <li class="row">
+            <div class="field wide">
+              <label class="row-label" for={`name-${n}`}>Course {n} name</label>
+              <input type="text" id={`name-${n}`} data-name maxlength="60" autocomplete="off" />
+            </div>
+            <div class="field">
+              <label class="row-label" for={`credits-${n}`}>Course {n} credit hours</label>
+              <input type="text" inputmode="decimal" id={`credits-${n}`} data-credits autocomplete="off" />
+            </div>
+            <div class="field">
+              <label class="row-label" for={`grade-${n}`}>Course {n} grade</label>
+              <select id={`grade-${n}`} data-grade>
+                <option value="">Select</option>
+                {defaultGrades.map((g) => <option value={g.grade}>{g.grade} ({g.points})</option>)}
+              </select>
+            </div>
+            <button type="button" class="remove" data-remove aria-label={`Remove course ${n}`}>✕</button>
+          </li>
+        ))
+      }
+    </ol>
 
     <div class="actions">
       <button type="button" class="btn btn--secondary" id="gpa-add">+ Add course</button>
@@ -76,7 +102,7 @@ const tool = getTool('gpa-calculator');
   const copyBtn = document.getElementById('gpa-copy') as HTMLButtonElement;
 
   let mapping: GradeMapping[] = [];
-  let rowSeq = 0;
+  let rowSeq = rowsEl.children.length; // rows rendered in HTML
   let copyText = '';
 
   const baseScale = () => scales.find((s) => s.id === scaleSelect.value) ?? scales[0]!;
@@ -266,13 +292,12 @@ const tool = getTool('gpa-calculator');
   if (params.get('s')) (document.getElementById('scale-edit') as HTMLDetailsElement).open = true;
   const saved = (params.get('r') ?? '').split('|').filter(Boolean);
   if (saved.length) {
+    rowsEl.replaceChildren();
     for (const row of saved.slice(0, 50)) {
       const [name = '', credits = '', grade = ''] = row.split('~');
       addRow({ name, credits, grade });
     }
-  } else {
-    for (let i = 0; i < 4; i++) addRow();
-  }
+  } else renumber();
   update();
 </script>
 

@@ -4,6 +4,8 @@ import { getTool } from '../data/tools';
 import { CGPA_FORMULA_PRESETS, CGPA_SCALES } from '../data/presets';
 
 const tool = getTool('cgpa-calculator');
+// Four empty rows are rendered in HTML so nothing shifts when the script starts.
+const initialRows = [1, 2, 3, 4];
 ---
 
 <ToolLayout tool={tool} privacySubject="grades">
@@ -22,7 +24,23 @@ const tool = getTool('cgpa-calculator');
     <div class="rows-head" aria-hidden="true" style="--cols: 1fr 1fr var(--tap)">
       <span>Semester GPA</span><span>Credit hours</span><span></span>
     </div>
-    <ol class="rows" id="cgpa-rows" aria-label="Semesters" style="--cols: 1fr 1fr var(--tap)"></ol>
+    <ol class="rows" id="cgpa-rows" aria-label="Semesters" style="--cols: 1fr 1fr var(--tap)">
+      {
+        initialRows.map((n) => (
+          <li class="row">
+            <div class="field">
+              <label class="row-label" for={`gpa-${n}`}>Semester {n} GPA</label>
+              <input type="text" inputmode="decimal" id={`gpa-${n}`} data-gpa autocomplete="off" />
+            </div>
+            <div class="field">
+              <label class="row-label" for={`credits-${n}`}>Semester {n} credit hours</label>
+              <input type="text" inputmode="decimal" id={`credits-${n}`} data-credits autocomplete="off" />
+            </div>
+            <button type="button" class="remove" data-remove aria-label={`Remove semester ${n}`}>✕</button>
+          </li>
+        ))
+      }
+    </ol>
 
     <div class="actions">
       <button type="button" class="btn btn--secondary" id="cgpa-add">+ Add semester</button>
@@ -96,7 +114,7 @@ const tool = getTool('cgpa-calculator');
   const convMul = document.getElementById('conv-mul') as HTMLInputElement;
   const convOut = document.getElementById('conv-result')!;
 
-  let seq = 0;
+  let seq = rowsEl.children.length; // rows rendered in HTML
   let copyText = '';
   let convTouched = false;
 
@@ -274,13 +292,12 @@ const tool = getTool('cgpa-calculator');
   }
   const saved = (params.get('r') ?? '').split('|').filter(Boolean);
   if (saved.length) {
+    rowsEl.replaceChildren();
     for (const row of saved.slice(0, 30)) {
       const [g = '', c = ''] = row.split('~');
       addRow({ gpa: g, credits: c });
     }
-  } else {
-    for (let i = 0; i < 4; i++) addRow();
-  }
+  } else renumber();
   update();
 </script>
 

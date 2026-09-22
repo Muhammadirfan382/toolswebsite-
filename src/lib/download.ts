@@ -26,12 +26,23 @@ export function uniqueNames(names: readonly string[]): string[] {
   });
 }
 
-/** Bundle files into a ZIP. jszip is loaded only when this is called. */
+const importZip = () => import('jszip').then((m) => m.default);
+type JSZipCtor = Awaited<ReturnType<typeof importZip>>;
+let zipLib: Promise<JSZipCtor> | null = null;
+/** Load jszip once. Called when the user picks files, so ZIP downloads also work offline later. */
+export function loadZipLib(): Promise<JSZipCtor> {
+  return (zipLib ??= importZip().catch((err) => {
+    zipLib = null;
+    throw err;
+  }));
+}
+
+/** Bundle files into a ZIP. jszip is loaded on first use (or when files are picked). */
 export async function zipBlobs(
   files: readonly { name: string; blob: Blob }[],
   onProgress?: (percent: number) => void,
 ): Promise<Blob> {
-  const { default: JSZip } = await import('jszip');
+  const JSZip = await loadZipLib();
   const zip = new JSZip();
   const names = uniqueNames(files.map((f) => f.name));
   files.forEach((f, i) => zip.file(names[i] as string, f.blob));

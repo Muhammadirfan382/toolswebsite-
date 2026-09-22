@@ -2,6 +2,9 @@
 export function pdfErrorMessage(err: unknown, fileName: string): string {
   const name = err instanceof Error ? err.name : '';
   const msg = err instanceof Error ? err.message : String(err);
+  if (/engine unavailable/.test(msg)) {
+    return 'The PDF tools could not load. Check your internet connection and reload the page. (After a file is chosen, the tools keep working offline.)';
+  }
   if (name === 'PasswordException' || /encrypt|password/i.test(msg)) {
     return `"${fileName}" is password-protected. Remove the password first, then try again.`;
   }

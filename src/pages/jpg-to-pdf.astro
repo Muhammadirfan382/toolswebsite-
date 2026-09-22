@@ -71,7 +71,7 @@ const tool = getTool('jpg-to-pdf');
   import { runImageJob, imageErrorMessage } from '../lib/image/run';
   import { typeOf } from '../lib/image/core';
   import { jpegOrientation } from '../lib/image/exif';
-  import { opErrorMessage, pdfBlob, pdfOp } from '../lib/pdf/run';
+  import { opErrorMessage, pdfBlob, pdfOp, warmUpPdfEngines } from '../lib/pdf/run';
   import type { MARGINS, PAGE_SIZES } from '../lib/pdf/ops';
 
   const $ = <T extends HTMLElement = HTMLInputElement>(id: string) => document.getElementById(id) as T;
@@ -94,9 +94,10 @@ const tool = getTool('jpg-to-pdf');
   }
   form.addEventListener('input', sync);
   form.addEventListener('change', sync);
-  dropEl.addEventListener('files-changed', () => {
+  dropEl.addEventListener('files-changed', (e) => {
     showErrors([]);
     result.clear();
+    if ((e as CustomEvent<File[]>).detail.length) warmUpPdfEngines();
   });
 
   /** Bytes ready for pdf-lib: JPEG/PNG, upright, optionally compressed. */

@@ -90,18 +90,18 @@ const types: T[] = [
   <div class="qr-layout">
     <div class="qr-inputs">
       <div data-tabs id="qr-tabs">
-        <div role="tablist" class="tablist" aria-label="QR code content type" hidden>
+        <div role="tablist" class="tablist" aria-label="QR code content type">
           {
-            types.map((t) => (
-              <button type="button" role="tab" id={`tab-${t.id}`} aria-controls={`panel-${t.id}`} aria-selected="false" tabindex="-1">
+            types.map((t, i) => (
+              <button type="button" role="tab" id={`tab-${t.id}`} aria-controls={`panel-${t.id}`} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1}>
                 {t.tab}
               </button>
             ))
           }
         </div>
         {
-          types.map((t) => (
-            <section role="tabpanel" id={`panel-${t.id}`} aria-labelledby={`tab-${t.id}`} class="panel" data-type={t.id}>
+          types.map((t, i) => (
+            <section role="tabpanel" id={`panel-${t.id}`} aria-labelledby={`tab-${t.id}`} class="panel" data-type={t.id} hidden={i !== 0}>
               <h2 class="panel-title visually-hidden">{t.tab}</h2>
               <div class={t.id === 'vcard' ? 'form-grid' : 'stack'}>
                 {t.fields.map((f) => (
@@ -187,7 +187,7 @@ const types: T[] = [
 
     <div class="qr-output">
       <div class="preview" id="qr-preview">
-        <canvas id="qr-canvas" width="256" height="256" role="img" aria-label="QR code preview"></canvas>
+        <canvas id="qr-canvas" width="256" height="256" role="img" aria-label="QR code preview" hidden></canvas>
         <p class="placeholder muted" id="qr-placeholder">Your QR code appears here.</p>
       </div>
       <div id="qr-messages" aria-live="polite"></div>
@@ -231,7 +231,7 @@ const types: T[] = [
     colorWarning,
     type PayloadResult,
   } from '../lib/qr/payload';
-  import { canvasToBlob, drawToCanvas, makeMatrix, toSvg, QrTooLongError, type ErrorLevel, type QrMatrix, type QrOptions } from '../lib/qr/render';
+  import { canvasToBlob, drawToCanvas, loadLib, makeMatrix, toSvg, QrTooLongError, type ErrorLevel, type QrMatrix, type QrOptions } from '../lib/qr/render';
   import { initTabs } from '../lib/tabs';
   import { debounce } from '../lib/autogrow';
   import { downloadBlob } from '../lib/download';
@@ -340,7 +340,15 @@ const types: T[] = [
     } catch (err) {
       if (id !== renderId) return;
       setMessages([
-        { text: err instanceof QrTooLongError ? err.message : 'The QR code could not be created. Check your input and try again.', kind: 'error' },
+        {
+          text:
+            err instanceof QrTooLongError
+              ? err.message
+              : /import|fetch|module/i.test(String(err))
+                ? 'The QR tool could not load. Check your internet connection and reload the page.'
+                : 'The QR code could not be created. Check your input and try again.',
+          kind: 'error',
+        },
         ...msgs,
       ]);
       setReady(false);
@@ -441,6 +449,10 @@ const types: T[] = [
       setTimeout(() => (copyBtn.textContent = 'Copy image'), 2000);
     });
   }
+
+  // The QR library is small: fetch it once the page is idle, so the tool also works offline.
+  const idle = window.requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 1500));
+  idle(() => void loadLib().catch(() => {}));
 
   const params = new URLSearchParams(location.search);
   const initialType = params.get('type');

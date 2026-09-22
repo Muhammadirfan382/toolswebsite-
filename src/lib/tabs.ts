@@ -1,7 +1,8 @@
 /**
- * Accessible tabs. Markup (without JS all panels show and the tab list stays hidden):
+ * Accessible tabs. Render the first tab selected and the other panels `hidden` in HTML, so
+ * nothing moves when this script starts:
  *   <div data-tabs>
- *     <div role="tablist" hidden> <button role="tab" id="t-a" aria-controls="p-a">…</button> … </div>
+ *     <div role="tablist"> <button role="tab" id="t-a" aria-controls="p-a">…</button> … </div>
  *     <div role="tabpanel" id="p-a" aria-labelledby="t-a">…</div> …
  *   </div>
  */

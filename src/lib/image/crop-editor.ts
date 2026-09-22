@@ -119,7 +119,7 @@ export function initCropEditor(root: HTMLElement): CropEditor {
       zoomInput.value = '1';
       active = true;
       root.hidden = false;
-      // Centre the image.
+      // Center the image.
       requestAnimationFrame(() => {
         const s = coverScale();
         fx = (vw() - iw * s) / 2 / vw();

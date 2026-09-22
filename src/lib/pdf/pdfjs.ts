@@ -15,13 +15,23 @@ export function loadPdfjs(): Promise<PdfJs> {
   ]).then(([lib, worker]) => {
     lib.GlobalWorkerOptions.workerSrc = worker.default;
     return lib;
+  }).catch((err) => {
+    loading = null;
+    throw new Error(`engine unavailable: ${err instanceof Error ? err.message : err}`);
   }));
 }
 
+type PdfWorker = InstanceType<PdfJs['PDFWorker']>;
+let sharedWorker: PdfWorker | null = null;
+
 export async function openPdf(data: ArrayBuffer | Uint8Array): Promise<PDFDocumentProxy> {
   const lib = await loadPdfjs();
+  // One pdf.js worker for the whole visit: it is started when the first file is opened, so later
+  // documents (e.g. converting after a preview) do not need the network again.
+  sharedWorker ??= new lib.PDFWorker();
   const base = new URL('/pdfjs/', location.origin).href;
   return lib.getDocument({
+    worker: sharedWorker,
     // pdf.js may transfer the buffer to its worker, so give it a copy.
     data: new Uint8Array(data).slice(),
     cMapUrl: `${base}cmaps/`,

@@ -51,7 +51,7 @@ createServer(async (req, res) => {
   const body = await readFile(file);
   res.writeHead(status, {
     'Content-Type': types[extname(file)] ?? 'application/octet-stream',
-    'Cache-Control': 'no-store',
+    'Cache-Control': 'no-cache',
   });
   res.end(body);
 }).listen(port, () => console.log(`Serving dist/ at http://localhost:${port}`));

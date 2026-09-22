@@ -1,6 +1,6 @@
 /**
  * Draw QR codes on a canvas and as SVG. The `qrcode` package is loaded on first use only.
- * We draw modules ourselves so colors, margin and a centre logo are fully under our control.
+ * We draw modules ourselves so colors, margin and a center logo are fully under our control.
  */
 
 export type ErrorLevel = 'L' | 'M' | 'Q' | 'H';
@@ -24,7 +24,7 @@ export interface QrOptions {
 
 type QrLib = typeof import('qrcode');
 let lib: Promise<QrLib> | null = null;
-const loadLib = () => (lib ??= import('qrcode').then((m) => ((m as unknown as { default?: QrLib }).default ?? m)));
+export const loadLib = () => (lib ??= import('qrcode').then((m) => ((m as unknown as { default?: QrLib }).default ?? m)));
 
 export class QrTooLongError extends Error {}
 

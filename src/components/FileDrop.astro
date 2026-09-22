@@ -136,6 +136,8 @@ const zoneHint =
     margin: var(--space-3) 0 0;
     padding: 0;
     display: grid;
+    /* Rows never grow wider than the screen, however long the file name. */
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--space-2);
   }
   .fd-list :global(.fd-item) {

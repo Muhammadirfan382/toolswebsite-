@@ -27,10 +27,10 @@ const modes: Mode[] = [
 
 <ToolLayout tool={tool} privacySubject="numbers">
   <div data-tabs id="pct-tabs">
-    <div role="tablist" class="tablist" aria-label="Percentage calculations" hidden>
+    <div role="tablist" class="tablist" aria-label="Percentage calculations">
       {
-        modes.map((m) => (
-          <button type="button" role="tab" id={`tab-${m.id}`} aria-controls={`panel-${m.id}`} aria-selected="false" tabindex="-1">
+        modes.map((m, i) => (
+          <button type="button" role="tab" id={`tab-${m.id}`} aria-controls={`panel-${m.id}`} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1}>
             {m.tab}
           </button>
         ))
@@ -38,8 +38,8 @@ const modes: Mode[] = [
     </div>
 
     {
-      modes.map((m) => (
-        <section role="tabpanel" id={`panel-${m.id}`} aria-labelledby={`tab-${m.id}`} class="panel">
+      modes.map((m, i) => (
+        <section role="tabpanel" id={`panel-${m.id}`} aria-labelledby={`tab-${m.id}`} class="panel" hidden={i !== 0}>
           <h2 class="panel-title">{m.title}</h2>
           <form data-mode={m.id} novalidate>
             <div class="form-grid">

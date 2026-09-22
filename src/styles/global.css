@@ -4,7 +4,7 @@
 :root {
   color-scheme: light dark;
 
-  /* Neutral greys with a slight green tint */
+  /* Neutral grays with a slight green tint */
   --gray-0: #ffffff;
   --gray-50: #f6f8f7;
   --gray-100: #edf1ef;
@@ -480,9 +480,6 @@ input[type='color'] {
 .tablist [role='tab'][aria-selected='true'] {
   color: var(--accent);
   border-bottom-color: var(--accent);
-}
-[data-tabs]:not(.tabs-ready) [role='tabpanel'] + [role='tabpanel'] {
-  margin-top: var(--space-4);
 }
 .panel-title {
   font-size: var(--text-lg);

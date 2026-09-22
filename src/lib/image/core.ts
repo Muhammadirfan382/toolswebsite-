@@ -30,7 +30,7 @@ export interface ImageJob {
   resize?: {
     width: number;
     height: number;
-    /** stretch = exact size; crop = cut to fill (uses `crop` or centre); pad = fit inside with background. */
+    /** stretch = exact size; crop = cut to fill (uses `crop` or center); pad = fit inside with background. */
     fit: 'stretch' | 'crop' | 'pad';
     /** Source rectangle in pixels of the upright image. */
     crop?: CropRect;
@@ -145,7 +145,7 @@ export function layout(
     return { sx: 0, sy: 0, sw: srcW, sh: srcH, dx: Math.round((outW - dw) / 2), dy: Math.round((outH - dh) / 2), dw, dh };
   }
   if (crop) return { sx: crop.x, sy: crop.y, sw: crop.w, sh: crop.h, dx: 0, dy: 0, dw: outW, dh: outH };
-  // Centre crop to the output aspect ratio.
+  // Center crop to the output aspect ratio.
   const target = outW / outH;
   let sw = srcW;
   let sh = srcH;

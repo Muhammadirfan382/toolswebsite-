@@ -3,7 +3,7 @@
  * bubbling 'start-over' event to reset their own state.
  */
 import { describeSizeChange, formatBytes } from './format';
-import { downloadBlob, zipBlobs } from './download';
+import { downloadBlob, loadZipLib, zipBlobs } from './download';
 
 export interface ResultItem {
   name: string;
@@ -114,7 +114,7 @@ export function initResultBox(root: HTMLElement): ResultBoxController {
       downloadBlob(zip, zipName);
       zipBtn.textContent = 'Download all as ZIP';
     } catch {
-      zipBtn.textContent = 'ZIP failed. Download files one by one.';
+      zipBtn.textContent = navigator.onLine ? 'ZIP failed. Download files one by one.' : 'ZIP needs a connection. Download files one by one.';
     } finally {
       zipBtn.disabled = false;
     }
@@ -145,5 +145,12 @@ export function initResultBox(root: HTMLElement): ResultBoxController {
 }
 
 export function initAllResultBoxes(): void {
-  document.querySelectorAll<HTMLElement>('[data-result-box]').forEach(initResultBox);
+  const boxes = document.querySelectorAll<HTMLElement>('[data-result-box]');
+  boxes.forEach(initResultBox);
+  // The user has picked files: fetch the ZIP library now so "Download all" works offline later.
+  if (boxes.length) {
+    document.addEventListener('files-changed', (e) => {
+      if ((e as CustomEvent<File[]>).detail.length) void loadZipLib().catch(() => {});
+    });
+  }
 }

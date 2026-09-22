@@ -75,6 +75,10 @@ Letter grades are usually awarded from percentage bands, but those bands differ 
 - **Convert marks.** If your results are given as marks rather than grades, the [Percentage Calculator](/percentage-calculator) turns marks into a percentage.
 - **Plan ahead.** Add the courses you are taking now with the grades you are aiming for, to see what GPA you could reach.
 
+## Weighted and unweighted GPA
+
+Some high schools report a "weighted" GPA that gives extra points for advanced or honors classes, and an "unweighted" GPA that does not. To calculate a weighted GPA here, open "Edit grade points" and raise the values to match your school's weighted scale, or ask your school which figure an application needs.
+
 ## Sharing and privacy
 
 Your courses, grades and any edited grade points are kept in the page address, so you can bookmark the calculation or send it to a classmate or advisor. The calculation itself runs in your browser, and nothing is sent to a server.
