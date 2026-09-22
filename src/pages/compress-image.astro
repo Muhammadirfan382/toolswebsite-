@@ -1,10 +1,15 @@
 ---
 import ToolLayout from '../layouts/ToolLayout.astro';
-import ComingSoon from '../components/ComingSoon.astro';
+import FileDrop from '../components/FileDrop.astro';
+import Progress from '../components/Progress.astro';
+import ResultBox from '../components/ResultBox.astro';
+import CompareSlider from '../components/CompareSlider.astro';
 import { getTool } from '../data/tools';
 import { SITE } from '../data/site';
 
 const tool = getTool('compress-image');
+const TARGETS_KB = [10, 20, 30, 50, 100, 200, 500, 1024];
+const label = (kb: number) => (kb >= 1024 ? `${kb / 1024} MB` : `${kb} KB`);
 ---
 
 <ToolLayout
@@ -14,6 +19,206 @@ const tool = getTool('compress-image');
   h1={`${tool.name} Online Free`}
   intro={tool.description}
 >
-  <ComingSoon tool={tool} />
+  <FileDrop id="ci-drop" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" acceptLabel="JPG, PNG or WebP images" multiple maxSizeMB={50} />
+
+  <form class="panel opts" id="ci-form" novalidate>
+    <fieldset class="segmented">
+      <legend class="visually-hidden">Compression mode</legend>
+      <label><input type="radio" name="mode" value="quality" checked /> Choose quality</label>
+      <label><input type="radio" name="mode" value="target" /> Target file size</label>
+    </fieldset>
+
+    <div data-mode-panel="quality">
+      <div class="field">
+        <label for="ci-quality">Quality: <output id="ci-quality-out" for="ci-quality">75</output></label>
+        <input type="range" id="ci-quality" min="10" max="100" step="1" value="75" aria-describedby="ci-estimate" />
+        <span class="hint" id="ci-estimate" aria-live="polite">Add an image to see the estimated size.</span>
+      </div>
+    </div>
+
+    <div data-mode-panel="target" hidden>
+      <div class="form-grid">
+        <div class="field">
+          <label for="ci-target">Target size</label>
+          <select id="ci-target">
+            {TARGETS_KB.map((kb) => <option value={kb} selected={kb === 100}>{label(kb)}</option>)}
+            <option value="custom">Custom…</option>
+          </select>
+        </div>
+        <div class="field" id="ci-custom" hidden>
+          <label for="ci-custom-kb">Custom size (KB)</label>
+          <input type="text" inputmode="numeric" id="ci-custom-kb" placeholder="e.g. 75" />
+        </div>
+      </div>
+      <p class="hint muted">We lower the quality step by step, then the dimensions if needed. If the target can't be reached, we tell you the real size.</p>
+    </div>
+
+    <div class="form-grid">
+      <div class="field">
+        <label for="ci-format">Output format</label>
+        <select id="ci-format">
+          <option value="original">Same as original</option>
+          <option value="image/jpeg">JPG</option>
+          <option value="image/webp">WebP</option>
+        </select>
+      </div>
+      <label class="check">
+        <input type="checkbox" id="ci-meta" /> Keep metadata (JPG only)
+      </label>
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="btn" id="ci-go">Compress images</button>
+    </div>
+  </form>
+
+  <Progress id="ci-progress" />
+  <div class="error-box" id="ci-errors" role="alert" hidden></div>
+  <ResultBox id="ci-result" zipName="compressed-images.zip" heading="Compressed images" />
+  <CompareSlider id="ci-compare" />
+
   <!-- TODO (Prompt 8): long content goes in slot="content" -->
 </ToolLayout>
+
+<script>
+  import { fileDropFor } from '../lib/file-drop';
+  import { resultBoxFor } from '../lib/result-box';
+  import { progressFor } from '../lib/progress';
+  import { runBatch, runImageJob } from '../lib/image/run';
+  import { extensionFor, type ImageJob, type OutputType } from '../lib/image/core';
+  import { initCompare } from '../lib/image/compare';
+  import { formatBytes, withExtension, describeSizeChange } from '../lib/format';
+  import { debounce } from '../lib/autogrow';
+  import { readParams } from '../lib/url-state';
+
+  const dropEl = document.getElementById('ci-drop')!;
+  const drop = fileDropFor(dropEl)!;
+  const form = document.getElementById('ci-form') as HTMLFormElement;
+  const result = resultBoxFor(document.getElementById('ci-result')!)!;
+  const progress = progressFor(document.getElementById('ci-progress')!)!;
+  const compare = initCompare(document.getElementById('ci-compare')!);
+  const errorsEl = document.getElementById('ci-errors')!;
+  const quality = document.getElementById('ci-quality') as HTMLInputElement;
+  const qualityOut = document.getElementById('ci-quality-out') as HTMLOutputElement;
+  const estimate = document.getElementById('ci-estimate')!;
+  const targetSel = document.getElementById('ci-target') as HTMLSelectElement;
+  const customWrap = document.getElementById('ci-custom')!;
+  const customKb = document.getElementById('ci-custom-kb') as HTMLInputElement;
+  const formatSel = document.getElementById('ci-format') as HTMLSelectElement;
+  const keepMeta = document.getElementById('ci-meta') as HTMLInputElement;
+  const goBtn = document.getElementById('ci-go') as HTMLButtonElement;
+
+  const mode = () => (form.querySelector<HTMLInputElement>('input[name="mode"]:checked')!.value as 'quality' | 'target');
+
+  function showErrors(list: string[]) {
+    errorsEl.replaceChildren(...list.map((t) => Object.assign(document.createElement('p'), { textContent: t })));
+    errorsEl.hidden = list.length === 0;
+  }
+
+  function targetBytes(): number | null {
+    if (targetSel.value !== 'custom') return Number(targetSel.value) * 1024;
+    const kb = Number(customKb.value.trim());
+    return Number.isFinite(kb) && kb >= 1 ? Math.round(kb * 1024) : null;
+  }
+
+  function jobFor(file: File): ImageJob {
+    return {
+      file,
+      type: formatSel.value as OutputType | 'original',
+      quality: Number(quality.value) / 100,
+      background: '#ffffff',
+      targetBytes: mode() === 'target' ? (targetBytes() ?? undefined) : undefined,
+      keepMetadata: keepMeta.checked,
+    };
+  }
+
+  function syncMode() {
+    form.querySelectorAll<HTMLElement>('[data-mode-panel]').forEach((p) => (p.hidden = p.dataset.modePanel !== mode()));
+    customWrap.hidden = targetSel.value !== 'custom';
+    updateEstimate();
+  }
+
+  let estimateId = 0;
+  const updateEstimate = debounce(async () => {
+    const first = drop.files[0];
+    if (mode() !== 'quality') return;
+    if (!first) {
+      estimate.textContent = 'Add an image to see the estimated size.';
+      return;
+    }
+    const id = ++estimateId;
+    estimate.textContent = 'Estimating…';
+    try {
+      const r = await runImageJob({ ...jobFor(first), targetBytes: undefined, keepMetadata: false });
+      if (id !== estimateId) return;
+      estimate.textContent = `${first.name}: ${formatBytes(first.size)} → about ${formatBytes(r.blob.size)} (${describeSizeChange(first.size, r.blob.size)}).`;
+    } catch {
+      if (id === estimateId) estimate.textContent = 'Could not estimate the size for this image.';
+    }
+  }, 300);
+
+  quality.addEventListener('input', () => {
+    qualityOut.value = quality.value;
+    updateEstimate();
+  });
+  form.addEventListener('change', syncMode);
+  dropEl.addEventListener('files-changed', () => {
+    showErrors([]);
+    result.clear();
+    compare.hide();
+    updateEstimate();
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const files = drop.files;
+    if (files.length === 0) return showErrors(['Add at least one image first, using "Choose files" or drag and drop.']);
+    if (mode() === 'target' && targetBytes() === null) return showErrors(['Enter a custom target size in KB, for example 75.']);
+    showErrors([]);
+    result.clear();
+    compare.hide();
+    drop.setBusy(true);
+    goBtn.disabled = true;
+    try {
+      const { results, errors } = await runBatch(files, jobFor, (d, t, l) => progress.set(d, t, l));
+      showErrors(errors);
+      if (results.length) {
+        result.show(
+          results.map(({ file, result: r }) => ({
+            name: withExtension(file.name.replace(/\.[^.]+$/, '') + '-compressed', extensionFor(r.type)),
+            blob: r.blob,
+            originalSize: file.size,
+            note: [`${r.width} × ${r.height} px${r.quality !== undefined ? `, quality ${Math.round(r.quality * 100)}` : ''}`, ...r.notes].join(' · '),
+            warn: r.warn,
+          })),
+        );
+        const first = results[0]!;
+        compare.show(first.file, first.result.blob, `${first.file.name}: ${formatBytes(first.file.size)} before, ${formatBytes(first.result.blob.size)} after.`);
+      }
+    } finally {
+      progress.hide();
+      drop.setBusy(false);
+      goBtn.disabled = false;
+    }
+  });
+
+  document.getElementById('ci-result')!.addEventListener('start-over', () => {
+    drop.clear();
+    compare.hide();
+    showErrors([]);
+  });
+
+  // Deep links: /compress-image?target=20kb or ?target=1mb
+  const t = readParams().get('target')?.toLowerCase().match(/^(\d+(?:\.\d+)?)(kb|mb)$/);
+  if (t) {
+    const kb = Number(t[1]) * (t[2] === 'mb' ? 1024 : 1);
+    form.querySelector<HTMLInputElement>('input[value="target"]')!.checked = true;
+    const option = [...targetSel.options].find((o) => Number(o.value) === kb);
+    if (option) targetSel.value = option.value;
+    else {
+      targetSel.value = 'custom';
+      customKb.value = String(kb);
+    }
+  }
+  syncMode();
+</script>

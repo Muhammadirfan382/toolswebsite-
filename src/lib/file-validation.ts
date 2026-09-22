@@ -33,6 +33,9 @@ export function validateFile(
   { tokens, acceptLabel, maxBytes }: ValidationOptions,
 ): string | null {
   if (!matchesAccept(file, tokens)) {
+    if (/\.(heic|heif)$/i.test(file.name) || /image\/hei[cf]/i.test(file.type)) {
+      return `"${file.name}" is an HEIC photo, which is not supported yet. On iPhone, share the photo as JPG, or set Settings › Camera › Formats to "Most Compatible".`;
+    }
     return `"${file.name}" is not a supported file type. Please choose ${acceptLabel}.`;
   }
   if (file.size === 0) {

@@ -1,6 +1,6 @@
 ---
 import ToolLayout from '../layouts/ToolLayout.astro';
-import ComingSoon from '../components/ComingSoon.astro';
+import ImageConverter from '../components/ImageConverter.astro';
 import { getTool } from '../data/tools';
 import { SITE } from '../data/site';
 
@@ -14,6 +14,6 @@ const tool = getTool('jpg-to-png');
   h1={`${tool.name} Online Free`}
   intro={tool.description}
 >
-  <ComingSoon tool={tool} />
+  <ImageConverter from="jpg" />
   <!-- TODO (Prompt 8): long content goes in slot="content" -->
 </ToolLayout>

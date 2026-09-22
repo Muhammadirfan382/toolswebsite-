@@ -6,7 +6,7 @@
  */
 
 /* ------------------------------------------------------------------ */
-/* Image presets (Prompt 6)                                            */
+/* Image presets                                                       */
 /* ------------------------------------------------------------------ */
 
 export interface ImagePreset {
@@ -16,15 +16,55 @@ export interface ImagePreset {
   /** Pixel size. Leave undefined while the official figure is unknown; the UI hides the preset. */
   widthPx?: number;
   heightPx?: number;
-  /** Physical size, for print and ID presets. */
+  /** Physical size, for print and ID presets (converted to pixels at `dpi`). */
   widthMm?: number;
   heightMm?: number;
+  dpi?: number;
+  /** Aspect-only preset (e.g. square) that keeps the image's own resolution. */
+  aspect?: number;
+  /** Maximum file size required by the form, in KB. */
   maxKB?: number;
   verify: boolean;
   source: string;
 }
 
-export const IMAGE_PRESETS: ImagePreset[] = [];
+/** A preset is usable only when it has a pixel size, a physical size, or an aspect ratio. */
+export function presetIsComplete(p: ImagePreset): boolean {
+  return Boolean((p.widthPx && p.heightPx) || (p.widthMm && p.heightMm) || p.aspect);
+}
+
+/** Pixel size for a preset, or null for aspect-only/incomplete presets. */
+export function presetPixels(p: ImagePreset): { width: number; height: number } | null {
+  if (p.widthPx && p.heightPx) return { width: p.widthPx, height: p.heightPx };
+  if (p.widthMm && p.heightMm) {
+    const dpi = p.dpi ?? 300;
+    return { width: Math.round((p.widthMm / 25.4) * dpi), height: Math.round((p.heightMm / 25.4) * dpi) };
+  }
+  return null;
+}
+
+// ⚠ VERIFY every size below against the platform's or authority's official page, then fill `source`.
+export const IMAGE_PRESETS: ImagePreset[] = [
+  // Social
+  { id: 'instagram-post', label: 'Instagram post (1080 × 1080)', group: 'social', widthPx: 1080, heightPx: 1080, verify: true, source: '' },
+  { id: 'instagram-story', label: 'Instagram story (1080 × 1920)', group: 'social', widthPx: 1080, heightPx: 1920, verify: true, source: '' },
+  { id: 'youtube-thumbnail', label: 'YouTube thumbnail (1280 × 720)', group: 'social', widthPx: 1280, heightPx: 720, verify: true, source: '' },
+  { id: 'facebook-cover', label: 'Facebook cover (820 × 312)', group: 'social', widthPx: 820, heightPx: 312, verify: true, source: '' },
+  { id: 'linkedin-banner', label: 'LinkedIn banner (1584 × 396)', group: 'social', widthPx: 1584, heightPx: 396, verify: true, source: '' },
+  { id: 'x-header', label: 'X (Twitter) header (1500 × 500)', group: 'social', widthPx: 1500, heightPx: 500, verify: true, source: '' },
+  { id: 'whatsapp-dp', label: 'WhatsApp profile photo (square)', group: 'social', aspect: 1, verify: true, source: '' },
+
+  // Documents & ID
+  { id: 'passport-35x45', label: 'Passport photo 35 × 45 mm (300 DPI)', group: 'documents', widthMm: 35, heightMm: 45, dpi: 300, verify: true, source: '' },
+  { id: 'us-passport-2x2', label: 'US passport / visa 2 × 2 in (600 × 600 px)', group: 'documents', widthPx: 600, heightPx: 600, verify: true, source: '' },
+  // TODO: fill from the official NADRA notice (dimensions + max KB). Hidden until complete.
+  { id: 'cnic-nadra-photo', label: 'CNIC / NADRA photo', group: 'documents', verify: true, source: '' },
+  // TODO: fill from the official exam notice. Hidden until complete.
+  { id: 'ssc-photo', label: 'SSC exam form photo', group: 'documents', verify: true, source: '' },
+  { id: 'ssc-signature', label: 'SSC exam form signature', group: 'documents', verify: true, source: '' },
+  { id: 'upsc-photo', label: 'UPSC exam form photo', group: 'documents', verify: true, source: '' },
+  { id: 'upsc-signature', label: 'UPSC exam form signature', group: 'documents', verify: true, source: '' },
+];
 
 /* ------------------------------------------------------------------ */
 /* GPA grade scales                                                    */

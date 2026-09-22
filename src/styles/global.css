@@ -572,3 +572,21 @@ td {
     white-space: nowrap;
   }
 }
+
+/* Per-file errors in file tools */
+.error-box {
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--danger-soft);
+  color: var(--danger);
+  border-radius: var(--radius);
+  font-weight: 600;
+}
+.error-box p {
+  margin: var(--space-1) 0;
+}
+.opts {
+  margin-top: var(--space-3);
+  display: grid;
+  gap: var(--space-3);
+}

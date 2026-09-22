@@ -1,10 +1,19 @@
 ---
 import ToolLayout from '../layouts/ToolLayout.astro';
-import ComingSoon from '../components/ComingSoon.astro';
+import FileDrop from '../components/FileDrop.astro';
+import Progress from '../components/Progress.astro';
+import ResultBox from '../components/ResultBox.astro';
 import { getTool } from '../data/tools';
 import { SITE } from '../data/site';
+import { IMAGE_PRESETS, presetIsComplete, presetPixels } from '../data/presets';
 
 const tool = getTool('resize-image');
+// Presets without official dimensions are hidden (CLAUDE.md rule 3).
+const presets = IMAGE_PRESETS.filter(presetIsComplete).map((p) => ({ ...p, px: presetPixels(p) }));
+const groups = [
+  { id: 'social', label: 'Social media' },
+  { id: 'documents', label: 'Documents & ID' },
+] as const;
 ---
 
 <ToolLayout
@@ -14,6 +23,447 @@ const tool = getTool('resize-image');
   h1={`${tool.name} Online Free`}
   intro={tool.description}
 >
-  <ComingSoon tool={tool} />
+  <FileDrop id="ri-drop" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" acceptLabel="JPG, PNG or WebP images" multiple maxSizeMB={50} />
+  <p class="muted small" id="ri-first-size" aria-live="polite"></p>
+
+  <form class="panel opts" id="ri-form" novalidate>
+    <fieldset class="segmented">
+      <legend class="visually-hidden">Resize by</legend>
+      <label><input type="radio" name="mode" value="pixels" checked /> Pixels</label>
+      <label><input type="radio" name="mode" value="percent" /> Percentage</label>
+      <label><input type="radio" name="mode" value="preset" /> Preset</label>
+      <label><input type="radio" name="mode" value="print" /> Print size</label>
+    </fieldset>
+
+    <div data-mode-panel="pixels" class="form-grid">
+      <div class="field">
+        <label for="ri-w">Width (px)</label>
+        <input type="text" inputmode="numeric" id="ri-w" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label for="ri-h">Height (px)</label>
+        <input type="text" inputmode="numeric" id="ri-h" autocomplete="off" />
+      </div>
+      <label class="check"><input type="checkbox" id="ri-lock" checked /> Keep aspect ratio</label>
+    </div>
+
+    <div data-mode-panel="percent" class="form-grid" hidden>
+      <div class="field">
+        <label for="ri-pct">Percentage of original size</label>
+        <input type="text" inputmode="decimal" id="ri-pct" value="50" autocomplete="off" />
+      </div>
+    </div>
+
+    <div data-mode-panel="preset" hidden>
+      <div class="field">
+        <label for="ri-preset">Preset</label>
+        <select id="ri-preset">
+          {
+            groups.map((g) => (
+              <optgroup label={g.label}>
+                {presets
+                  .filter((p) => p.group === g.id)
+                  .map((p) => (
+                    <option
+                      value={p.id}
+                      data-w={p.px?.width}
+                      data-h={p.px?.height}
+                      data-aspect={p.aspect}
+                      data-dpi={p.dpi}
+                      data-max-kb={p.maxKB}
+                    >
+                      {p.label}
+                    </option>
+                  ))}
+              </optgroup>
+            ))
+          }
+        </select>
+        <span class="hint">Always check the size your form or platform asks for. Official requirements can change.</span>
+      </div>
+    </div>
+
+    <div data-mode-panel="print" class="form-grid" hidden>
+      <div class="field">
+        <label for="ri-pw">Width</label>
+        <input type="text" inputmode="decimal" id="ri-pw" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label for="ri-ph">Height</label>
+        <input type="text" inputmode="decimal" id="ri-ph" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label for="ri-unit">Unit</label>
+        <select id="ri-unit">
+          <option value="cm">cm</option>
+          <option value="mm">mm</option>
+          <option value="in">inches</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="ri-dpi">Resolution (DPI)</label>
+        <input type="text" inputmode="numeric" id="ri-dpi" value="300" autocomplete="off" />
+      </div>
+    </div>
+
+    <fieldset class="fit" id="ri-fit" hidden>
+      <legend class="label">The shape is different from your image. How should it fit?</legend>
+      <label class="check"><input type="radio" name="fit" value="crop" checked /> Crop to fill (you can position it)</label>
+      <label class="check"><input type="radio" name="fit" value="pad" /> Fit inside and add a background</label>
+      <label class="check"><input type="radio" name="fit" value="stretch" /> Stretch (may distort)</label>
+      <div class="field bg-field" id="ri-bg-wrap" hidden>
+        <label for="ri-bg">Background color</label>
+        <input type="color" id="ri-bg" value="#ffffff" />
+      </div>
+    </fieldset>
+
+    <div class="crop" id="ri-crop" hidden>
+      <p class="label" id="ri-crop-label">Drag the photo to position it. Use the slider or + / − to zoom.</p>
+      <div class="crop-viewport" data-crop-viewport tabindex="0" role="group" aria-labelledby="ri-crop-label" aria-describedby="ri-crop-keys">
+        <img data-crop-img alt="Image being cropped" draggable="false" />
+      </div>
+      <p class="hint muted" id="ri-crop-keys">Keyboard: arrow keys move the photo (Shift for bigger steps), + and − zoom.</p>
+      <label class="zoom">Zoom <input type="range" min="1" max="4" step="0.01" value="1" data-crop-zoom /></label>
+      <p class="hint muted" id="ri-crop-multi" hidden>With several images, the others are cropped from the center.</p>
+    </div>
+
+    <div class="form-grid">
+      <div class="field">
+        <label for="ri-format">Output format</label>
+        <select id="ri-format">
+          <option value="original">Same as original</option>
+          <option value="image/jpeg">JPG</option>
+          <option value="image/png">PNG</option>
+          <option value="image/webp">WebP</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="ri-quality">Quality (JPG/WebP): <output id="ri-quality-out" for="ri-quality">90</output></label>
+        <input type="range" id="ri-quality" min="10" max="100" value="90" />
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <label class="check"><input type="checkbox" id="ri-maxkb-on" /> Also compress to a maximum size</label>
+      <div class="field" id="ri-maxkb-wrap" hidden>
+        <label for="ri-maxkb">Maximum size (KB)</label>
+        <input type="text" inputmode="numeric" id="ri-maxkb" placeholder="e.g. 50" autocomplete="off" />
+      </div>
+    </div>
+
+    <p class="muted" id="ri-summary" aria-live="polite"></p>
+    <div class="actions">
+      <button type="submit" class="btn" id="ri-go">Resize images</button>
+    </div>
+  </form>
+
+  <Progress id="ri-progress" />
+  <div class="error-box" id="ri-errors" role="alert" hidden></div>
+  <ResultBox id="ri-result" zipName="resized-images.zip" heading="Resized images" />
+
   <!-- TODO (Prompt 8): long content goes in slot="content" -->
 </ToolLayout>
+
+<script>
+  import { fileDropFor } from '../lib/file-drop';
+  import { resultBoxFor } from '../lib/result-box';
+  import { progressFor } from '../lib/progress';
+  import { runBatch } from '../lib/image/run';
+  import { extensionFor, readSize, type ImageJob, type OutputType } from '../lib/image/core';
+  import { initCropEditor } from '../lib/image/crop-editor';
+  import { withExtension } from '../lib/format';
+  import { readParams } from '../lib/url-state';
+
+  const $ = <T extends HTMLElement = HTMLInputElement>(id: string) => document.getElementById(id) as T;
+  const dropEl = $<HTMLElement>('ri-drop');
+  const drop = fileDropFor(dropEl)!;
+  const form = $<HTMLFormElement>('ri-form');
+  const result = resultBoxFor($<HTMLElement>('ri-result'))!;
+  const progress = progressFor($<HTMLElement>('ri-progress'))!;
+  const crop = initCropEditor($<HTMLElement>('ri-crop'));
+  const errorsEl = $<HTMLElement>('ri-errors');
+  const presetSel = $<HTMLSelectElement>('ri-preset');
+  const summary = $<HTMLElement>('ri-summary');
+
+  let first: { file: File; width: number; height: number } | null = null;
+  let sizes = new Map<File, { width: number; height: number }>();
+  let cropKey = '';
+
+  const mode = () => form.querySelector<HTMLInputElement>('input[name="mode"]:checked')!.value as 'pixels' | 'percent' | 'preset' | 'print';
+  const fit = () => form.querySelector<HTMLInputElement>('input[name="fit"]:checked')!.value as 'crop' | 'pad' | 'stretch';
+  const int = (v: string) => Math.round(Number(v.trim()));
+
+  function showErrors(list: string[]) {
+    errorsEl.replaceChildren(...list.map((t) => Object.assign(document.createElement('p'), { textContent: t })));
+    errorsEl.hidden = list.length === 0;
+  }
+
+  /** Target size for an image, or an error message. Aspect-only presets use the image's own size. */
+  function targetFor(w: number, h: number): { width: number; height: number; dpi?: number } | string {
+    switch (mode()) {
+      case 'pixels': {
+        const tw = int($('ri-w').value);
+        const th = int($('ri-h').value);
+        const lock = $('ri-lock').checked;
+        if (lock) {
+          if (tw > 0) return { width: tw, height: Math.max(1, Math.round((tw * h) / w)) };
+          if (th > 0) return { width: Math.max(1, Math.round((th * w) / h)), height: th };
+          return 'Enter a width or a height in pixels.';
+        }
+        if (tw > 0 && th > 0) return { width: tw, height: th };
+        return 'Enter both width and height, or turn on "Keep aspect ratio".';
+      }
+      case 'percent': {
+        const pct = Number($('ri-pct').value.trim());
+        if (!(pct > 0) || pct > 1000) return 'Enter a percentage between 1 and 1000.';
+        return { width: Math.max(1, Math.round((w * pct) / 100)), height: Math.max(1, Math.round((h * pct) / 100)) };
+      }
+      case 'preset': {
+        const o = presetSel.selectedOptions[0];
+        if (!o) return 'Choose a preset.';
+        if (o.dataset.w && o.dataset.h) {
+          return { width: Number(o.dataset.w), height: Number(o.dataset.h), dpi: o.dataset.dpi ? Number(o.dataset.dpi) : undefined };
+        }
+        const aspect = Number(o.dataset.aspect);
+        if (aspect > 0) {
+          // Largest area with this aspect ratio inside the original.
+          return w / h > aspect ? { width: Math.round(h * aspect), height: h } : { width: w, height: Math.round(w / aspect) };
+        }
+        return 'This preset has no size yet.';
+      }
+      case 'print': {
+        const unit = $<HTMLSelectElement>('ri-unit').value;
+        const dpi = int($('ri-dpi').value);
+        const toInch = unit === 'cm' ? 1 / 2.54 : unit === 'mm' ? 1 / 25.4 : 1;
+        const pw = Number($('ri-pw').value.trim());
+        const ph = Number($('ri-ph').value.trim());
+        if (!(dpi >= 30 && dpi <= 1200)) return 'Enter a resolution between 30 and 1200 DPI.';
+        if (pw > 0 && ph > 0) return { width: Math.round(pw * toInch * dpi), height: Math.round(ph * toInch * dpi), dpi };
+        if (pw > 0) { const width = Math.round(pw * toInch * dpi); return { width, height: Math.round((width * h) / w), dpi }; }
+        if (ph > 0) { const height = Math.round(ph * toInch * dpi); return { width: Math.round((height * w) / h), height, dpi }; }
+        return 'Enter a print width or height.';
+      }
+    }
+  }
+
+  const aspectDiffers = (t: { width: number; height: number }, w: number, h: number) =>
+    Math.abs(t.width / t.height - w / h) > 0.01;
+
+  function refresh() {
+    form.querySelectorAll<HTMLElement>('[data-mode-panel]').forEach((p) => (p.hidden = p.dataset.modePanel !== mode()));
+    $<HTMLElement>('ri-bg-wrap').hidden = fit() !== 'pad';
+    $<HTMLElement>('ri-maxkb-wrap').hidden = !$('ri-maxkb-on').checked;
+    $<HTMLOutputElement>('ri-quality-out').value = $('ri-quality').value;
+
+    if (!first) {
+      summary.textContent = '';
+      $<HTMLElement>('ri-fit').hidden = true;
+      crop.close();
+      cropKey = '';
+      return;
+    }
+    const t = targetFor(first.width, first.height);
+    if (typeof t === 'string') {
+      summary.textContent = t;
+      $<HTMLElement>('ri-fit').hidden = true;
+      crop.close();
+      return;
+    }
+    const differs = aspectDiffers(t, first.width, first.height) && (mode() === 'preset' || (mode() === 'pixels' && !$('ri-lock').checked) || mode() === 'print');
+    $<HTMLElement>('ri-fit').hidden = !differs;
+    summary.textContent = `${first.file.name}: ${first.width} × ${first.height} px → ${t.width} × ${t.height} px${t.dpi ? ` at ${t.dpi} DPI` : ''}.`;
+    if (differs && fit() === 'crop') {
+      // Re-open only when the image or shape changes, so the user's position is kept.
+      const key = `${first.file.name}:${first.file.size}:${(t.width / t.height).toFixed(4)}`;
+      if (key !== cropKey) {
+        crop.open(first.file, first.width, first.height, t.width / t.height);
+        cropKey = key;
+      }
+      $<HTMLElement>('ri-crop-multi').hidden = drop.files.length < 2;
+    } else {
+      crop.close();
+      cropKey = '';
+    }
+  }
+
+  function applyPresetKb() {
+    const kb = presetSel.selectedOptions[0]?.dataset.maxKb;
+    if (mode() === 'preset' && kb) {
+      $('ri-maxkb-on').checked = true;
+      $('ri-maxkb').value = kb;
+    }
+  }
+
+  // Keep width/height in step when the aspect ratio is locked.
+  $('ri-w').addEventListener('input', () => {
+    if ($('ri-lock').checked && first && int($('ri-w').value) > 0) $('ri-h').value = String(Math.round((int($('ri-w').value) * first.height) / first.width));
+  });
+  $('ri-h').addEventListener('input', () => {
+    if ($('ri-lock').checked && first && int($('ri-h').value) > 0) $('ri-w').value = String(Math.round((int($('ri-h').value) * first.width) / first.height));
+  });
+  form.addEventListener('input', refresh);
+  form.addEventListener('change', (e) => {
+    if ((e.target as HTMLElement).id === 'ri-preset' || (e.target as HTMLInputElement).name === 'mode') applyPresetKb();
+    refresh();
+  });
+
+  dropEl.addEventListener('files-changed', async (e) => {
+    const files = (e as CustomEvent<File[]>).detail;
+    showErrors([]);
+    result.clear();
+    sizes = new Map();
+    first = null;
+    const f = files[0];
+    if (f) {
+      try {
+        const s = await readSize(f);
+        sizes.set(f, s);
+        first = { file: f, ...s };
+        $<HTMLElement>('ri-first-size').textContent = `${f.name} is ${s.width} × ${s.height} px.`;
+        if (!$('ri-w').value && !$('ri-h').value) {
+          $('ri-w').value = String(s.width);
+          $('ri-h').value = String(s.height);
+        }
+      } catch (err) {
+        showErrors([(err as Error).message]);
+      }
+    } else $<HTMLElement>('ri-first-size').textContent = '';
+    refresh();
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const files = drop.files;
+    if (files.length === 0) return showErrors(['Add at least one image first, using "Choose files" or drag and drop.']);
+    const maxKbOn = $('ri-maxkb-on').checked;
+    const maxKb = int($('ri-maxkb').value);
+    if (maxKbOn && !(maxKb > 0)) return showErrors(['Enter the maximum size in KB, for example 50.']);
+    showErrors([]);
+    result.clear();
+    drop.setBusy(true);
+    $<HTMLButtonElement>('ri-go').disabled = true;
+    const cropRect = crop.crop;
+    const problems: string[] = [];
+    const jobs = new Map<File, ImageJob>();
+    try {
+      for (const file of files) {
+        let s = sizes.get(file);
+        if (!s) {
+          try {
+            s = await readSize(file);
+          } catch (err) {
+            problems.push((err as Error).message);
+            continue;
+          }
+        }
+        const t = targetFor(s.width, s.height);
+        if (typeof t === 'string') {
+          problems.push(t);
+          break;
+        }
+        const differs = aspectDiffers(t, s.width, s.height);
+        jobs.set(file, {
+          file,
+          type: $<HTMLSelectElement>('ri-format').value as OutputType | 'original',
+          quality: int($('ri-quality').value) / 100,
+          background: $('ri-bg').value,
+          resize: {
+            width: t.width,
+            height: t.height,
+            fit: differs ? fit() : 'stretch',
+            crop: differs && fit() === 'crop' && file === first?.file && cropRect ? cropRect : undefined,
+          },
+          targetBytes: maxKbOn ? maxKb * 1024 : undefined,
+          dpi: t.dpi,
+        });
+      }
+      const ready = files.filter((f) => jobs.has(f));
+      const { results, errors } = await runBatch(ready, (f) => jobs.get(f)!, (d, t, l) => progress.set(d, t, l));
+      showErrors([...problems, ...errors]);
+      if (results.length) {
+        result.show(
+          results.map(({ file, result: r }) => ({
+            name: withExtension(`${file.name.replace(/\.[^.]+$/, '')}-${r.width}x${r.height}`, extensionFor(r.type)),
+            blob: r.blob,
+            originalSize: file.size,
+            note: [`${r.width} × ${r.height} px`, ...r.notes].join(' · '),
+            warn: r.warn,
+          })),
+        );
+      }
+    } finally {
+      progress.hide();
+      drop.setBusy(false);
+      $<HTMLButtonElement>('ri-go').disabled = false;
+    }
+  });
+
+  $<HTMLElement>('ri-result').addEventListener('start-over', () => {
+    drop.clear();
+    showErrors([]);
+  });
+
+  // Deep links: /resize-image?preset=passport-35x45
+  const presetParam = readParams().get('preset');
+  if (presetParam && [...presetSel.options].some((o) => o.value === presetParam)) {
+    form.querySelector<HTMLInputElement>('input[value="preset"]')!.checked = true;
+    presetSel.value = presetParam;
+    applyPresetKb();
+  }
+  refresh();
+</script>
+
+<style>
+  .small {
+    font-size: var(--text-sm);
+    margin: var(--space-2) 0 0;
+  }
+  .label {
+    font-weight: 600;
+    font-size: var(--text-sm);
+  }
+  .fit {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: var(--space-1);
+  }
+  .bg-field {
+    max-width: 12rem;
+  }
+  .crop-viewport {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    max-width: 24rem;
+    background: var(--surface-2);
+    border: 2px solid var(--accent);
+    border-radius: var(--radius);
+    touch-action: none;
+    cursor: grab;
+    user-select: none;
+  }
+  .crop-viewport:active {
+    cursor: grabbing;
+  }
+  .crop-viewport img {
+    position: absolute;
+    left: 0;
+    top: 0;
+    max-width: none;
+    transform-origin: 0 0;
+    pointer-events: none;
+  }
+  .zoom {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    max-width: 24rem;
+    font-weight: 600;
+    font-size: var(--text-sm);
+  }
+  .zoom input {
+    flex: 1;
+  }
+</style>

@@ -1,0 +1,123 @@
+---
+/** Shared UI for JPG → PNG and PNG → JPG. */
+interface Props {
+  from: 'jpg' | 'png';
+}
+const { from } = Astro.props;
+const toJpg = from === 'png';
+import FileDrop from './FileDrop.astro';
+import Progress from './Progress.astro';
+import ResultBox from './ResultBox.astro';
+---
+
+<div data-converter data-to={toJpg ? 'image/jpeg' : 'image/png'}>
+  <FileDrop
+    id="cv-drop"
+    accept={toJpg ? 'image/png,.png' : 'image/jpeg,.jpg,.jpeg'}
+    acceptLabel={toJpg ? 'PNG images' : 'JPG images'}
+    multiple
+    maxSizeMB={50}
+  />
+
+  <form class="panel opts" id="cv-form" novalidate>
+    {
+      toJpg ? (
+        <div class="form-grid">
+          <div class="field">
+            <label for="cv-bg">Background for transparent areas</label>
+            <input type="color" id="cv-bg" value="#ffffff" />
+            <span class="hint">JPG cannot store transparency, so see-through parts are filled with this color.</span>
+          </div>
+          <div class="field">
+            <label for="cv-quality">
+              Quality: <output id="cv-quality-out" for="cv-quality">90</output>
+            </label>
+            <input type="range" id="cv-quality" min="10" max="100" value="90" />
+          </div>
+        </div>
+      ) : (
+        <p class="muted hint">
+          PNG is lossless, so the picture keeps its full quality. PNG files are usually larger than the original JPG.
+        </p>
+      )
+    }
+    <div class="actions">
+      <button type="submit" class="btn" id="cv-go">Convert to {toJpg ? 'JPG' : 'PNG'}</button>
+    </div>
+  </form>
+
+  <Progress id="cv-progress" />
+  <div class="error-box" id="cv-errors" role="alert" hidden></div>
+  <ResultBox id="cv-result" zipName={toJpg ? 'converted-jpg.zip' : 'converted-png.zip'} heading="Converted images" />
+</div>
+
+<script>
+  import { fileDropFor } from '../lib/file-drop';
+  import { resultBoxFor } from '../lib/result-box';
+  import { progressFor } from '../lib/progress';
+  import { runBatch } from '../lib/image/run';
+  import { extensionFor, type OutputType } from '../lib/image/core';
+  import { withExtension } from '../lib/format';
+
+  const root = document.querySelector<HTMLElement>('[data-converter]')!;
+  const to = root.dataset.to as OutputType;
+  const dropEl = document.getElementById('cv-drop')!;
+  const drop = fileDropFor(dropEl)!;
+  const result = resultBoxFor(document.getElementById('cv-result')!)!;
+  const progress = progressFor(document.getElementById('cv-progress')!)!;
+  const errorsEl = document.getElementById('cv-errors')!;
+  const quality = document.getElementById('cv-quality') as HTMLInputElement | null;
+  const bg = document.getElementById('cv-bg') as HTMLInputElement | null;
+  const go = document.getElementById('cv-go') as HTMLButtonElement;
+
+  function showErrors(list: string[]) {
+    errorsEl.replaceChildren(...list.map((t) => Object.assign(document.createElement('p'), { textContent: t })));
+    errorsEl.hidden = list.length === 0;
+  }
+
+  quality?.addEventListener('input', () => {
+    (document.getElementById('cv-quality-out') as HTMLOutputElement).value = quality.value;
+  });
+  dropEl.addEventListener('files-changed', () => {
+    showErrors([]);
+    result.clear();
+  });
+
+  document.getElementById('cv-form')!.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const files = drop.files;
+    if (files.length === 0) return showErrors(['Add at least one image first, using "Choose files" or drag and drop.']);
+    showErrors([]);
+    result.clear();
+    drop.setBusy(true);
+    go.disabled = true;
+    try {
+      const { results, errors } = await runBatch(
+        files,
+        (file) => ({ file, type: to, quality: quality ? Number(quality.value) / 100 : 1, background: bg?.value ?? '#ffffff' }),
+        (d, t, l) => progress.set(d, t, l),
+      );
+      showErrors(errors);
+      if (results.length) {
+        result.show(
+          results.map(({ file, result: r }) => ({
+            name: withExtension(file.name, extensionFor(r.type)),
+            blob: r.blob,
+            originalSize: file.size,
+            note: [`${r.width} × ${r.height} px`, ...r.notes].join(' · '),
+            warn: r.warn,
+          })),
+        );
+      }
+    } finally {
+      progress.hide();
+      drop.setBusy(false);
+      go.disabled = false;
+    }
+  });
+
+  document.getElementById('cv-result')!.addEventListener('start-over', () => {
+    drop.clear();
+    showErrors([]);
+  });
+</script>

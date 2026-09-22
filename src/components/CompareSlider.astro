@@ -1,0 +1,89 @@
+---
+/** Before/after image comparison. Controlled by src/lib/image/compare.ts. */
+interface Props {
+  id?: string;
+}
+const { id = 'compare' } = Astro.props;
+---
+
+<figure class="compare" id={id} data-compare hidden>
+  <div class="frame">
+    <img data-before alt="Original image" />
+    <img data-after alt="Compressed image" />
+    <span class="divider" aria-hidden="true"></span>
+    <span class="tag tag-before" aria-hidden="true">Before</span>
+    <span class="tag tag-after" aria-hidden="true">After</span>
+  </div>
+  <label class="range-label">
+    <span>Compare before and after</span>
+    <input type="range" min="0" max="100" value="50" data-range />
+  </label>
+  <figcaption class="muted" data-caption></figcaption>
+</figure>
+
+<style>
+  .compare {
+    margin: var(--space-4) 0 0;
+    max-width: 40rem;
+  }
+  .frame {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background:
+      repeating-conic-gradient(var(--surface-2) 0% 25%, var(--surface) 0% 50%) 50% / 16px 16px;
+    line-height: 0;
+  }
+  .frame img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .frame img[data-after] {
+    position: absolute;
+    inset: 0;
+    height: 100%;
+    object-fit: contain;
+    clip-path: inset(0 0 0 var(--pos, 50%));
+  }
+  .divider {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: var(--pos, 50%);
+    width: 2px;
+    margin-left: -1px;
+    background: var(--accent);
+  }
+  .tag {
+    position: absolute;
+    top: var(--space-2);
+    padding: 2px var(--space-2);
+    background: rgb(0 0 0 / 0.6);
+    color: #fff;
+    font-size: var(--text-sm);
+    line-height: 1.4;
+  }
+  .tag-before {
+    left: var(--space-2);
+  }
+  .tag-after {
+    right: var(--space-2);
+  }
+  .range-label {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin-top: var(--space-2);
+    font-size: var(--text-sm);
+    font-weight: 600;
+  }
+  .range-label input {
+    width: 100%;
+  }
+  figcaption {
+    font-size: var(--text-sm);
+    margin-top: var(--space-1);
+  }
+</style>
