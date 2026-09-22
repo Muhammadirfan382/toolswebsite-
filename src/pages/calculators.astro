@@ -1,0 +1,36 @@
+---
+import CategoryLayout from '../layouts/CategoryLayout.astro';
+import { SITE } from '../data/site';
+---
+
+<CategoryLayout
+  categoryId="calc"
+  title={`Free Online Calculators – Age, GPA, BMI | ${SITE.brand}`}
+  description="Free online calculators for age, percentage, GPA, CGPA and BMI. Each one shows the formula it uses. No sign-up, and it all runs in your browser."
+  h1="Free Online Calculators"
+>
+  <h2>Calculators that show their working</h2>
+  <p>
+    A result is only useful if you can trust it. Each calculator here shows the formula it
+    used, so you can check the answer yourself or copy the working into an assignment.
+  </p>
+  <p>
+    The <a href="/age-calculator">Age Calculator</a> gives an exact age in years, months and
+    days and counts down to the next birthday. The
+    <a href="/percentage-calculator">Percentage Calculator</a> covers the everyday cases:
+    a percent of a number, percent change, marks percentage and adding or removing a
+    discount. Students can use the <a href="/gpa-calculator">GPA Calculator</a> for a single
+    term and the <a href="/cgpa-calculator">CGPA Calculator</a> to combine several semesters.
+    The <a href="/bmi-calculator">BMI Calculator</a> works in metric or imperial units for
+    adults.
+  </p>
+  <p>
+    Grading scales and CGPA-to-percentage rules differ between universities, so always check
+    your own institution's official rule before relying on a converted figure. The BMI
+    calculator is for general information about adults and is not medical advice.
+  </p>
+  <p>
+    Results update as you type, and the numbers you enter stay in your browser. You can copy a
+    result or share a link that reopens the calculator with the same values.
+  </p>
+</CategoryLayout>

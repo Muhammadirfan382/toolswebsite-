@@ -1,0 +1,80 @@
+---
+import PageLayout from '../layouts/PageLayout.astro';
+import { SITE } from '../data/site';
+---
+
+<PageLayout
+  title={`Privacy Policy | ${SITE.brand}`}
+  description={`How ${SITE.brand} handles your data: files are processed locally in your browser and never uploaded. Details on cookies, ads and hosting.`}
+  h1="Privacy Policy"
+  path="/privacy-policy"
+  updated="[TODO: date]"
+>
+  <p>
+    This policy explains what happens to your data when you use {SITE.brand}
+    (<span>{SITE.domain}</span>). The short version: the files you open in our tools stay on
+    your device.
+  </p>
+
+  <h2>Files you process</h2>
+  <p>
+    All tools on this site run in your web browser. When you select a PDF, an image or a text
+    file, it is read and processed locally on your device using code that loaded with the
+    page. Your files are <strong>not uploaded</strong> to our servers or to any third party,
+    and we cannot see, store or recover them. The same applies to text you type into the word
+    counter, character counter and QR code generator, and to numbers you enter into the
+    calculators.
+  </p>
+  <p>
+    Some tools may save your most recent input in your browser's own storage (for example, an
+    unsent draft in the word counter) so it is still there when you come back. This data stays
+    on your device, and you can clear it from the tool or from your browser settings.
+  </p>
+
+  <h2>Hosting and server logs</h2>
+  <p>
+    The site is served by a hosting provider
+    <span class="placeholder">[TODO: confirm provider, e.g. Cloudflare Pages]</span>. Like any
+    website, the provider receives standard technical information when your browser requests a
+    page, such as your IP address, browser type and the page requested. This is needed to
+    deliver the site and protect it from abuse. It does not include the files you process in
+    the tools.
+  </p>
+
+  <h2>Cookies and advertising</h2>
+  <p>
+    The site does not currently use advertising or analytics cookies. We plan to show ads in
+    the future through Google AdSense. When that happens, Google and its partners may use
+    cookies to serve ads based on your visits to this and other websites, and we will update
+    this policy and ask for your consent where the law requires it. You can read how Google
+    uses information from sites that use its services in
+    <a href="https://policies.google.com/technologies/partner-sites" rel="noopener">Google's
+    partner sites policy</a>, and how it uses cookies in advertising in
+    <a href="https://policies.google.com/technologies/ads" rel="noopener">Google's advertising
+    policy</a>. You can manage personalized ads in
+    <a href="https://adssettings.google.com" rel="noopener">Google Ad Settings</a>.
+  </p>
+
+  <h2>Contacting us</h2>
+  <p>
+    If you email us, we receive your email address and whatever you write, and we use it only
+    to reply. We do not sell or share it.
+  </p>
+
+  <h2>Children</h2>
+  <p>
+    The site is a general-audience tool site and does not knowingly collect personal
+    information from children.
+  </p>
+
+  <h2>Changes to this policy</h2>
+  <p>
+    If this policy changes, the new version will be posted on this page with a new date.
+  </p>
+
+  <h2>Contact</h2>
+  <p>
+    Questions about privacy: <a href={`mailto:${SITE.email}`}>{SITE.email}</a>.
+    <span class="placeholder">[TODO: add the site operator's name and country if required in your jurisdiction]</span>
+  </p>
+</PageLayout>

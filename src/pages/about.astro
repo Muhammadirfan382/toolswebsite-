@@ -1,0 +1,41 @@
+---
+import PageLayout from '../layouts/PageLayout.astro';
+import { SITE } from '../data/site';
+---
+
+<PageLayout
+  title={`About ${SITE.brand} – Free Browser-Based Tools`}
+  description={`About ${SITE.brand}: free PDF, image, calculator, text and QR tools that run in your browser, so your files never leave your device.`}
+  h1={`About ${SITE.brand}`}
+  path="/about"
+>
+  <p>
+    {SITE.brand} is a collection of free online tools for everyday jobs: working with PDFs and
+    images, quick calculations, counting words and making QR codes.
+  </p>
+
+  <h2>How the tools work</h2>
+  <p>
+    Every tool runs inside your web browser. When you choose a file, it is read and processed
+    on your own device. It is not uploaded to us or to anyone else. This is the main idea
+    behind the site: you should not have to hand over a personal document just to make it
+    smaller or change its format.
+  </p>
+
+  <h2>Who runs this site</h2>
+  <p>
+    <span class="placeholder">[TODO: one or two honest sentences about who you are, e.g. "Built and maintained by NAME, a developer based in COUNTRY."]</span>
+  </p>
+
+  <h2>How the site is funded</h2>
+  <p>
+    The tools are free to use. In the future the site may show advertising to cover running
+    costs. Ads will never be given access to the files you process. See the
+    <a href="/privacy-policy">Privacy Policy</a> for details.
+  </p>
+
+  <h2>Get in touch</h2>
+  <p>
+    Found a bug or have an idea for a tool? Visit the <a href="/contact">Contact page</a>.
+  </p>
+</PageLayout>

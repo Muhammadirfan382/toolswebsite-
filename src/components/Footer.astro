@@ -1,0 +1,91 @@
+---
+import { SITE } from '../data/site';
+import { CATEGORIES, toolsIn, toolPath } from '../data/tools';
+
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="groups">
+      {
+        CATEGORIES.map((c) => (
+          <section aria-labelledby={`footer-${c.id}`}>
+            <h2 id={`footer-${c.id}`}>
+              <a href={c.path}>{c.name}</a>
+            </h2>
+            <ul>
+              {toolsIn(c.id).map((t) => (
+                <li>
+                  <a href={toolPath(t.slug)}>{t.name}</a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))
+      }
+      <section aria-labelledby="footer-site">
+        <h2 id="footer-site">{SITE.brand}</h2>
+        <ul>
+          <li><a href="/about">About</a></li>
+          <li><a href="/privacy-policy">Privacy Policy</a></li>
+          <li><a href="/terms">Terms of Use</a></li>
+          <li><a href="/contact">Contact</a></li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="privacy-line">{SITE.privacyLine}</p>
+    <p class="copy">© {year} {SITE.brand}</p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    margin-top: var(--space-7);
+    padding-block: var(--space-5);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    font-size: var(--text-sm);
+  }
+  .groups {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+    gap: var(--space-4);
+  }
+  h2 {
+    font-size: var(--text-base);
+    margin: 0 0 var(--space-2);
+  }
+  h2 a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap);
+    color: var(--text);
+    text-decoration: none;
+  }
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  li a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap);
+    color: var(--text-muted);
+    text-decoration: none;
+  }
+  li a:hover {
+    color: var(--accent);
+    text-decoration: underline;
+  }
+  .privacy-line {
+    margin: var(--space-4) 0 var(--space-1);
+    font-weight: 600;
+  }
+  .copy {
+    margin: 0;
+    color: var(--text-muted);
+  }
+</style>

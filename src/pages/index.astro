@@ -1,0 +1,218 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ToolCard from '../components/ToolCard.astro';
+import Icon from '../components/Icon.astro';
+import { SITE } from '../data/site';
+import { CATEGORIES, toolsIn } from '../data/tools';
+
+const title = `Free Online Tools for PDF, Images & QR | ${SITE.brand}`;
+const description =
+  'Free online tools to merge and compress PDFs, resize images, make QR codes and more. No sign-up. Files stay in your browser and are never uploaded.';
+
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: SITE.brand,
+    url: SITE.url,
+    email: SITE.email,
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: SITE.brand,
+    url: SITE.url,
+    inLanguage: 'en',
+  },
+];
+---
+
+<BaseLayout title={title} description={description}>
+  <script type="application/ld+json" slot="head" set:html={JSON.stringify(jsonLd)} />
+
+  <div class="container">
+    <section class="hero">
+      <h1>Free Online Tools for PDF, Images, Calculators &amp; QR Codes</h1>
+      <p class="lead">
+        <span class="lock"><Icon name="lock" size={20} /></span>
+        Every tool runs in your browser, so your files never leave your device.
+      </p>
+
+      <div class="search" data-search-box hidden>
+        <label for="tool-search">Search tools</label>
+        <div class="search-field">
+          <Icon name="search" size={20} />
+          <input
+            id="tool-search"
+            type="search"
+            placeholder={`Try "compress" or "calculator"`}
+            autocomplete="off"
+            aria-describedby="search-status"
+          />
+        </div>
+        <p id="search-status" class="muted search-status" aria-live="polite"></p>
+      </div>
+    </section>
+
+    {
+      CATEGORIES.map((c) => (
+        <section class="group" data-tool-group aria-labelledby={`group-${c.id}`}>
+          <div class="group-head">
+            <h2 id={`group-${c.id}`}>{c.name}</h2>
+            <a href={c.path}>All {c.navLabel.toLowerCase()}</a>
+          </div>
+          <p class="muted">{c.blurb}</p>
+          <ul class="tool-grid">
+            {toolsIn(c.id).map((tool) => (
+              <li data-tool-item>
+                <ToolCard tool={tool} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))
+    }
+
+    <section class="prose intro" aria-labelledby="about-tools">
+      <h2 id="about-tools">Simple tools for everyday tasks</h2>
+      <p>
+        This site collects the small tools people reach for again and again: joining PDF
+        files, shrinking a photo so an online form will accept it, turning pictures into a
+        PDF, working out a percentage or a GPA, counting the words in an essay, or making a
+        QR code for a link or a WiFi network. Each tool has one job and a clear screen, so you
+        can finish the task and move on.
+      </p>
+      <h3>Your files stay on your device</h3>
+      <p>
+        Many online converters send your file to a server, process it there and send it
+        back. These tools work differently. The processing code downloads to your browser
+        with the page, and your PDFs and images are handled on your own phone or computer.
+        Nothing you open here is uploaded, which matters when the file is an ID card, a
+        payslip, a signed form or a medical report.
+      </p>
+      <h3>Free, with no account</h3>
+      <p>
+        There is no sign-up, no email gate and no watermark added to your results. Open a
+        tool, use it and download the result.
+      </p>
+      <h3>Clear results you can check</h3>
+      <p>
+        The calculators show the formula behind every answer, and the file tools report the
+        real size of what they produce, including when a file cannot be made as small as you
+        asked. Where a rule depends on an official body, such as a photo size for a form or a
+        university's grading scale, the page says so and asks you to check the official
+        source.
+      </p>
+      <h3>Works on phones and computers</h3>
+      <p>
+        Every page is built to work in a mobile browser as well as on a desktop, so you can
+        use it on an iPhone, an Android phone, a tablet, a Windows PC or a Mac without
+        installing an app. Very large files take longer on older phones, because your own
+        device does the work.
+      </p>
+      <p>
+        Pick a category above, or use the search box to jump straight to the tool you need.
+      </p>
+    </section>
+  </div>
+</BaseLayout>
+
+<script>
+  const box = document.querySelector<HTMLElement>('[data-search-box]');
+  const input = document.querySelector<HTMLInputElement>('#tool-search');
+  const status = document.querySelector<HTMLElement>('#search-status');
+
+  if (box && input && status) {
+    box.hidden = false; // Search needs JavaScript, so it only appears when JS runs.
+    const items = [...document.querySelectorAll<HTMLElement>('[data-tool-item]')];
+    const groups = [...document.querySelectorAll<HTMLElement>('[data-tool-group]')];
+
+    input.addEventListener('input', () => {
+      const terms = input.value.toLowerCase().trim().split(/\s+/).filter(Boolean);
+      let shown = 0;
+      for (const item of items) {
+        const text = item.querySelector<HTMLElement>('[data-tool-card]')?.dataset.search ?? '';
+        const match = terms.every((term) => text.includes(term));
+        item.hidden = !match;
+        if (match) shown++;
+      }
+      for (const group of groups) {
+        group.hidden = !group.querySelector('[data-tool-item]:not([hidden])');
+      }
+      status.textContent =
+        terms.length === 0
+          ? ''
+          : shown === 0
+            ? `No tools match "${input.value.trim()}". Try a shorter word such as "pdf" or "image".`
+            : `${shown} ${shown === 1 ? 'tool' : 'tools'} found.`;
+    });
+  }
+</script>
+
+<style>
+  .hero {
+    padding-block: var(--space-5) var(--space-3);
+  }
+  .lead {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .lock {
+    display: inline-flex;
+    color: var(--accent);
+  }
+  .search {
+    max-width: 32rem;
+    margin-top: var(--space-4);
+  }
+  .search label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: var(--space-1);
+  }
+  .search-field {
+    position: relative;
+    color: var(--text-muted);
+  }
+  .search-field :global(svg) {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+  .search-field input {
+    width: 100%;
+    padding-left: 40px;
+  }
+  .search-status {
+    min-height: 1.6em;
+    margin: var(--space-2) 0 0;
+    font-size: var(--text-sm);
+  }
+  .group {
+    margin-top: var(--space-4);
+  }
+  .group-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+  .group-head h2 {
+    margin: 0;
+  }
+  .group-head a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap);
+  }
+  .group > .muted {
+    margin-bottom: var(--space-3);
+  }
+  .intro {
+    margin-top: var(--space-6);
+  }
+</style>

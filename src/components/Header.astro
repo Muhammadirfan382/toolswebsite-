@@ -1,0 +1,157 @@
+---
+import { SITE } from '../data/site';
+import { CATEGORIES } from '../data/tools';
+
+const current = Astro.url.pathname.replace(/\.html$/, '');
+---
+
+<header class="site-header">
+  <div class="container bar">
+    <a class="logo" href="/">{SITE.brand}</a>
+
+    <nav class="nav-desktop" aria-label="Main">
+      <ul>
+        {
+          CATEGORIES.map((c) => (
+            <li>
+              <a href={c.path} aria-current={current === c.path ? 'page' : undefined}>
+                {c.navLabel}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+
+    <!-- Works without JavaScript -->
+    <details class="nav-mobile">
+      <summary>
+        <span class="burger" aria-hidden="true"></span>
+        <span>Menu</span>
+      </summary>
+      <nav aria-label="Main (mobile)">
+        <ul>
+          {
+            CATEGORIES.map((c) => (
+              <li>
+                <a href={c.path} aria-current={current === c.path ? 'page' : undefined}>
+                  {c.navLabel}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+    </details>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    z-index: 10;
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    min-height: 60px;
+  }
+  .logo {
+    font-weight: 700;
+    font-size: var(--text-lg);
+    color: var(--text);
+    text-decoration: none;
+    min-height: var(--tap);
+    display: inline-flex;
+    align-items: center;
+  }
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  nav a {
+    display: flex;
+    align-items: center;
+    min-height: var(--tap);
+    padding: 0 var(--space-3);
+    color: var(--text);
+    text-decoration: none;
+    border-radius: var(--radius);
+    font-weight: 500;
+  }
+  nav a:hover {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+  nav a[aria-current='page'] {
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .nav-desktop {
+    display: none;
+  }
+  .nav-desktop ul {
+    display: flex;
+    gap: var(--space-1);
+  }
+
+  .nav-mobile summary {
+    list-style: none;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: var(--tap);
+    padding: 0 var(--space-3);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-weight: 500;
+  }
+  .nav-mobile summary::-webkit-details-marker {
+    display: none;
+  }
+  .burger,
+  .burger::before,
+  .burger::after {
+    display: block;
+    width: 18px;
+    height: 2px;
+    background: currentColor;
+    position: relative;
+  }
+  .burger::before,
+  .burger::after {
+    content: '';
+    position: absolute;
+  }
+  .burger::before {
+    top: -6px;
+  }
+  .burger::after {
+    top: 6px;
+  }
+  .nav-mobile nav {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: var(--space-2) var(--space-3) var(--space-3);
+  }
+
+  @media (min-width: 48rem) {
+    .nav-desktop {
+      display: block;
+    }
+    .nav-mobile {
+      display: none;
+    }
+  }
+</style>

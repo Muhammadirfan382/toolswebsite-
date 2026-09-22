@@ -1,0 +1,18 @@
+---
+import ToolLayout from '../layouts/ToolLayout.astro';
+import ComingSoon from '../components/ComingSoon.astro';
+import { getTool } from '../data/tools';
+import { SITE } from '../data/site';
+
+const tool = getTool('resize-image');
+---
+
+<ToolLayout
+  tool={tool}
+  title={`${tool.name} Online Free | ${SITE.brand}`}
+  description={`${tool.description} Free, no sign-up, and it runs in your browser.`}
+  h1={`${tool.name} Online Free`}
+>
+  <ComingSoon tool={tool} />
+  <!-- TODO (Prompt 8): long content goes in slot="content" -->
+</ToolLayout>

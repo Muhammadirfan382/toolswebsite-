@@ -1,0 +1,31 @@
+---
+import CategoryLayout from '../layouts/CategoryLayout.astro';
+import { SITE } from '../data/site';
+---
+
+<CategoryLayout
+  categoryId="pdf"
+  title={`Free PDF Tools – Merge, Compress, Convert | ${SITE.brand}`}
+  description="Free PDF tools to merge, compress and convert PDF files. No sign-up and no watermark. Your PDFs are processed in your browser, never uploaded."
+  h1="Free PDF Tools"
+>
+  <h2>PDF tools that keep your documents private</h2>
+  <p>
+    PDFs often hold the documents you least want to share: bank statements, contracts,
+    certificates, application forms and scanned IDs. The tools on this page work on those
+    files inside your own browser. Your PDF is opened and rebuilt on your phone or computer
+    and is never sent to a server.
+  </p>
+  <p>
+    Use <a href="/merge-pdf">Merge PDF</a> to join several files into one document, for
+    example a form and its supporting pages. Use <a href="/compress-pdf">Compress PDF</a> when
+    a portal or email rejects a file for being too large. <a href="/jpg-to-pdf">JPG to PDF</a>
+    turns photos of paper documents into a single PDF, and <a href="/pdf-to-jpg">PDF to JPG</a>
+    saves pages as images you can share or post.
+  </p>
+  <p>
+    There is no account to create and no watermark on the result. Everything works in a
+    mobile browser as well as on a computer. Large PDFs with many pages take longer on older
+    phones, because the processing happens on your device rather than on a remote server.
+  </p>
+</CategoryLayout>

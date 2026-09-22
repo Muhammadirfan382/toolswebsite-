@@ -1,0 +1,66 @@
+---
+import Icon from './Icon.astro';
+import { toolPath, type Tool } from '../data/tools';
+
+interface Props {
+  tool: Tool;
+  /** Heading level for the tool name, so cards fit the page outline. */
+  headingLevel?: 'h2' | 'h3' | 'h4';
+}
+
+const { tool, headingLevel: Heading = 'h3' } = Astro.props;
+---
+
+<a
+  class="card tool-card"
+  href={toolPath(tool.slug)}
+  data-tool-card
+  data-search={`${tool.name} ${tool.description}`.toLowerCase()}
+>
+  <span class="icon"><Icon name={tool.icon} /></span>
+  <span class="body">
+    <Heading class="name">{tool.name}</Heading>
+    <span class="desc">{tool.description}</span>
+  </span>
+</a>
+
+<style>
+  .tool-card {
+    display: flex;
+    gap: var(--space-3);
+    align-items: flex-start;
+    height: 100%;
+    padding: var(--space-3);
+    color: var(--text);
+    text-decoration: none;
+  }
+  .tool-card:hover {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+  .icon {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius);
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+  .name {
+    font-size: var(--text-base);
+    margin: 0;
+  }
+  .desc {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+</style>

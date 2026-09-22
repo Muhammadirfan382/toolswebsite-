@@ -1,0 +1,67 @@
+---
+import PageLayout from '../layouts/PageLayout.astro';
+import { SITE } from '../data/site';
+---
+
+<PageLayout
+  title={`Terms of Use | ${SITE.brand}`}
+  description={`Terms of use for ${SITE.brand}: free online tools provided as-is, processed in your browser. Please read before using the site.`}
+  h1="Terms of Use"
+  path="/terms"
+  updated="[TODO: date]"
+>
+  <p>
+    By using {SITE.brand} (<span>{SITE.domain}</span>) you agree to these terms. If you do not
+    agree, please do not use the site.
+  </p>
+
+  <h2>The service</h2>
+  <p>
+    The site provides free online tools that run in your web browser. We may change, add or
+    remove tools at any time.
+  </p>
+
+  <h2>Your files and content</h2>
+  <p>
+    You keep all rights to the files and text you process. Because processing happens on your
+    device, we do not receive or store your files. You are responsible for making sure you
+    have the right to use and modify the files you work with.
+  </p>
+
+  <h2>Acceptable use</h2>
+  <p>
+    Do not use the site for anything unlawful, and do not try to disrupt or overload it.
+  </p>
+
+  <h2>No warranty</h2>
+  <p>
+    The tools are provided "as is", without any warranty. We work to make results accurate,
+    but we do not guarantee that any output, calculation or conversion is correct or suitable
+    for a particular purpose. Check important results yourself, and always follow the official
+    requirements of the organization you are submitting a document or photo to. Calculator
+    results, including BMI, are for general information and are not professional, academic or
+    medical advice. Keep a copy of your original files.
+  </p>
+
+  <h2>Limitation of liability</h2>
+  <p>
+    To the extent allowed by law, we are not liable for any loss or damage arising from your
+    use of the site, including lost data or rejected applications.
+  </p>
+
+  <h2>Third-party links</h2>
+  <p>
+    The site may link to other websites. We are not responsible for their content or policies.
+  </p>
+
+  <h2>Changes</h2>
+  <p>
+    We may update these terms. The new version will be posted on this page with a new date.
+  </p>
+
+  <h2>Governing law and contact</h2>
+  <p>
+    <span class="placeholder">[TODO: governing law / country]</span>. Questions:
+    <a href={`mailto:${SITE.email}`}>{SITE.email}</a>.
+  </p>
+</PageLayout>

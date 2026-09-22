@@ -1,0 +1,31 @@
+---
+import CategoryLayout from '../layouts/CategoryLayout.astro';
+import { SITE } from '../data/site';
+---
+
+<CategoryLayout
+  categoryId="image"
+  title={`Free Image Tools – Compress, Resize, Convert | ${SITE.brand}`}
+  description="Free image tools to compress, resize and convert JPG and PNG files. No sign-up and no upload: your photos are processed in your browser."
+  h1="Free Image Tools"
+>
+  <h2>Fix image size and format without uploading</h2>
+  <p>
+    Online forms, job portals and social networks are strict about images. A form might only
+    accept a photo under a certain file size, a profile picture might need to be square, and
+    some sites accept JPG but not PNG. These tools handle those jobs in your browser, so your
+    photos stay on your device.
+  </p>
+  <p>
+    <a href="/compress-image">Compress Image</a> reduces file size and can aim for a target
+    such as 50KB or 100KB. <a href="/resize-image">Resize Image</a> changes the width and height
+    in pixels, by percentage or with a preset. <a href="/jpg-to-png">JPG to PNG</a> and
+    <a href="/png-to-jpg">PNG to JPG</a> switch between the two most common formats, and let you
+    pick a background color when a transparent PNG becomes a JPG.
+  </p>
+  <p>
+    You can work with several images at once and download the results together. The tools
+    work on iPhone, Android and desktop browsers with no app to install and no account to
+    create, and nothing is added to your pictures.
+  </p>
+</CategoryLayout>

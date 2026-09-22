@@ -1,0 +1,53 @@
+---
+/**
+ * Shared shell for every tool page.
+ * Prompt 1 scope: breadcrumbs, H1, tool area, content area, related tools.
+ * Prompt 2 adds: intro, PrivacyBadge, AdSlot, HowToSteps, FAQ and the tool JSON-LD.
+ */
+import BaseLayout from './BaseLayout.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+import RelatedTools from '../components/RelatedTools.astro';
+import { getCategory, toolPath, type Tool } from '../data/tools';
+
+interface Props {
+  tool: Tool;
+  title: string;
+  description: string;
+  h1: string;
+}
+
+const { tool, title, description, h1 } = Astro.props;
+const category = getCategory(tool.category);
+const crumbs = [
+  { name: 'Home', path: '/' },
+  { name: category.name, path: category.path },
+  { name: tool.name, path: toolPath(tool.slug) },
+];
+---
+
+<BaseLayout title={title} description={description}>
+  <slot name="head" slot="head" />
+  <div class="container">
+    <Breadcrumbs items={crumbs} />
+    <h1>{h1}</h1>
+
+    <section class="tool-area" aria-label={`${tool.name} tool`}>
+      <slot />
+    </section>
+
+    <article class="prose tool-content">
+      <slot name="content" />
+    </article>
+
+    <RelatedTools slugs={tool.related} />
+  </div>
+</BaseLayout>
+
+<style>
+  .tool-area {
+    margin-block: var(--space-4);
+  }
+  .tool-content:empty {
+    display: none;
+  }
+</style>

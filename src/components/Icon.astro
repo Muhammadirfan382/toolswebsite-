@@ -1,0 +1,48 @@
+---
+/** Decorative 24×24 stroke icons. Always aria-hidden: the surrounding text carries the meaning. */
+import type { IconName } from '../data/tools';
+
+type Name = IconName | 'lock' | 'search';
+
+interface Props {
+  name: Name;
+  size?: number;
+}
+
+const { name, size = 24 } = Astro.props;
+
+const paths: Record<Name, string> = {
+  merge: 'M6 3h7l4 4v6M6 3v14h5M17 13v8M13 17h8',
+  compress: 'M6 3h9l4 4v14H6zM12 8v4m0 0-2-2m2 2 2-2M12 18v-4m0 0-2 2m2-2 2 2',
+  'image-to-pdf': 'M3 5h10v8H3zM3 11l3-3 3 3 2-2 2 2M15 9h3l3 3v9h-8v-6',
+  'pdf-to-image': 'M3 3h6l3 3v7H3zM13 11h8v10h-8zM13 19l3-3 2 2 1-1 2 2',
+  image: 'M3 5h18v14H3zM3 16l5-5 4 4 3-3 6 6M15.5 9.5h.01',
+  resize: 'M4 4h7M4 4v7M4 4l7 7M20 20h-7M20 20v-7M20 20l-7-7',
+  convert: 'M4 8h13l-3-3M20 16H7l3 3',
+  calendar: 'M4 6h16v14H4zM4 10h16M8 3v5M16 3v5',
+  percent: 'M19 5 5 19M7 7h.01M17 17h.01M7 4.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM17 14.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z',
+  grad: 'M2 9l10-5 10 5-10 5zM6 11v5c3 2 9 2 12 0v-5M22 9v6',
+  scale: 'M4 20h16M6 20l2-12h8l2 12M12 8V4M9 12a3 3 0 0 1 6 0',
+  qr: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2M14 18h2v2M18 18h2v2h-2z',
+  text: 'M4 6h16M4 10h16M4 14h12M4 18h8',
+  chars: 'M4 19l5-14 5 14M6 14h6M15 13h5M17.5 10.5v5',
+  lock: 'M6 11h12v9H6zM8.5 11V8a3.5 3.5 0 0 1 7 0v3',
+  search: 'M10.5 4a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13zM15.5 15.5 20 20',
+};
+---
+
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width={size}
+  height={size}
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="1.75"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  aria-hidden="true"
+  focusable="false"
+>
+  <path d={paths[name]}></path>
+</svg>

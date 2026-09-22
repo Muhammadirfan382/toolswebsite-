@@ -1,0 +1,33 @@
+---
+import CategoryLayout from '../layouts/CategoryLayout.astro';
+import { SITE } from '../data/site';
+---
+
+<CategoryLayout
+  categoryId="text-qr"
+  title={`Free Text & QR Tools – Word Counter, QR Codes | ${SITE.brand}`}
+  description="Free word counter, character counter and QR code generator. No sign-up, no tracking of your text: everything runs in your browser."
+  h1="Free Text & QR Code Tools"
+>
+  <h2>Count your words and share with a QR code</h2>
+  <p>
+    Essays, cover letters, product listings and social posts often come with a length limit.
+    The <a href="/word-counter">Word Counter</a> counts words, sentences and paragraphs as you
+    type and estimates reading time. The <a href="/character-counter">Character Counter</a>
+    focuses on characters and shows how your text compares with common length limits.
+  </p>
+  <p>
+    The <a href="/qr-code-generator">QR Code Generator</a> creates codes for a website link, a
+    WiFi network, a phone number, an email, a WhatsApp chat, a contact card or a map location.
+    These are static QR codes: the information is stored in the code itself, so they do not
+    expire and do not depend on this site staying online.
+  </p>
+  <p>
+    Text you type or paste is handled in your browser and is not sent anywhere. The tools work
+    on phones and computers, with no app and no account needed.
+  </p>
+  <p>
+    Before you print a QR code on a flyer, menu or business card, scan it with your own phone
+    camera to make sure it opens the right link or joins the right network.
+  </p>
+</CategoryLayout>

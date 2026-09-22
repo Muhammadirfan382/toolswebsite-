@@ -1,0 +1,62 @@
+---
+/** Visible breadcrumb trail. The last item is the current page and is not a link. */
+export interface Crumb {
+  name: string;
+  path: string;
+}
+
+interface Props {
+  items: Crumb[];
+}
+
+const { items } = Astro.props;
+---
+
+<nav class="breadcrumbs" aria-label="Breadcrumb">
+  <ol>
+    {
+      items.map((item, i) => (
+        <li>
+          {i < items.length - 1 ? (
+            <a href={item.path}>{item.name}</a>
+          ) : (
+            <span aria-current="page">{item.name}</span>
+          )}
+        </li>
+      ))
+    }
+  </ol>
+</nav>
+
+<style>
+  .breadcrumbs {
+    font-size: var(--text-sm);
+    margin: var(--space-3) 0 var(--space-2);
+  }
+  ol {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  li {
+    display: inline-flex;
+    align-items: center;
+  }
+  li + li::before {
+    content: '/';
+    margin: 0 var(--space-2);
+    color: var(--text-muted);
+  }
+  a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap);
+    color: var(--text-muted);
+  }
+  [aria-current] {
+    color: var(--text);
+  }
+</style>

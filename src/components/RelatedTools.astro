@@ -1,0 +1,23 @@
+---
+import ToolCard from './ToolCard.astro';
+import { getTool } from '../data/tools';
+
+interface Props {
+  slugs: string[];
+}
+
+const tools = Astro.props.slugs.map(getTool);
+---
+
+<section class="related" aria-labelledby="related-heading">
+  <h2 id="related-heading">Related tools</h2>
+  <ul class="tool-grid">
+    {
+      tools.map((tool) => (
+        <li>
+          <ToolCard tool={tool} />
+        </li>
+      ))
+    }
+  </ul>
+</section>

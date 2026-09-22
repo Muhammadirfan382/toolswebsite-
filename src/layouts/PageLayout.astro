@@ -1,0 +1,40 @@
+---
+/** Plain prose page (About, Privacy, Terms, Contact). */
+import BaseLayout from './BaseLayout.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  h1: string;
+  path: string;
+  /** Shown under the H1, e.g. "Last updated: …". */
+  updated?: string;
+}
+
+const { title, description, h1, path, updated } = Astro.props;
+---
+
+<BaseLayout title={title} description={description}>
+  <div class="container">
+    <Breadcrumbs
+      items={[
+        { name: 'Home', path: '/' },
+        { name: h1, path },
+      ]}
+    />
+    <article class="prose">
+      <h1>{h1}</h1>
+      {updated && <p class="muted">Last updated: {updated}</p>}
+      <slot />
+    </article>
+  </div>
+</BaseLayout>
+
+<style>
+  .prose :global(.placeholder) {
+    background: var(--warning-soft);
+    color: var(--text);
+    padding: 0 var(--space-1);
+  }
+</style>
