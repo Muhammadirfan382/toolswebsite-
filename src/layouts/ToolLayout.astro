@@ -1,51 +1,100 @@
 ---
 /**
  * Shared shell for every tool page.
- * Prompt 1 scope: breadcrumbs, H1, tool area, content area, related tools.
- * Prompt 2 adds: intro, PrivacyBadge, AdSlot, HowToSteps, FAQ and the tool JSON-LD.
+ * Order: Breadcrumbs → H1 → intro → PrivacyBadge → [tool UI] → AdSlot → HowToSteps →
+ *        content slot → FAQ → RelatedTools.
+ * JSON-LD: BreadcrumbList, SoftwareApplication, HowTo and FAQPage (when steps/faqs are given).
  */
 import BaseLayout from './BaseLayout.astro';
 import Breadcrumbs from '../components/Breadcrumbs.astro';
+import PrivacyBadge from '../components/PrivacyBadge.astro';
+import AdSlot from '../components/AdSlot.astro';
+import HowToSteps from '../components/HowToSteps.astro';
+import FAQ, { type FaqItem } from '../components/FAQ.astro';
 import RelatedTools from '../components/RelatedTools.astro';
 import { getCategory, toolPath, type Tool } from '../data/tools';
+import { breadcrumbList, faqPage, howTo, softwareApplication, toJsonLd } from '../lib/schema';
 
 interface Props {
   tool: Tool;
   title: string;
   description: string;
   h1: string;
+  /** One sentence under the H1. */
+  intro: string;
+  howToSteps?: string[];
+  faqs?: FaqItem[];
+  /** Word used in the privacy badge: "files" (default) or "text", "numbers"… */
+  privacySubject?: string;
 }
 
-const { tool, title, description, h1 } = Astro.props;
+const {
+  tool,
+  title,
+  description,
+  h1,
+  intro,
+  howToSteps = [],
+  faqs = [],
+  privacySubject = 'files',
+} = Astro.props;
+
+const site = Astro.site!;
 const category = getCategory(tool.category);
 const crumbs = [
   { name: 'Home', path: '/' },
   { name: category.name, path: category.path },
   { name: tool.name, path: toolPath(tool.slug) },
 ];
+
+const schemas = [
+  breadcrumbList(crumbs, site),
+  softwareApplication({
+    name: tool.name,
+    description,
+    url: new URL(toolPath(tool.slug), site).href,
+  }),
+  ...(howToSteps.length ? [howTo(`How to use the ${tool.name} tool`, howToSteps)] : []),
+  ...(faqs.length ? [faqPage(faqs)] : []),
+];
 ---
 
 <BaseLayout title={title} description={description}>
-  <slot name="head" slot="head" />
+  <Fragment slot="head">
+    {schemas.map((s) => <script type="application/ld+json" set:html={toJsonLd(s)} />)}
+    <slot name="head" />
+  </Fragment>
+
   <div class="container">
     <Breadcrumbs items={crumbs} />
     <h1>{h1}</h1>
+    <p class="lead intro">{intro}</p>
+    <PrivacyBadge subject={privacySubject} />
 
     <section class="tool-area" aria-label={`${tool.name} tool`}>
       <slot />
     </section>
 
+    <AdSlot id="below-tool" />
+
+    <HowToSteps heading={`How to use the ${tool.name} tool`} steps={howToSteps} />
+
     <article class="prose tool-content">
       <slot name="content" />
     </article>
+
+    <FAQ faqs={faqs} />
 
     <RelatedTools slugs={tool.related} />
   </div>
 </BaseLayout>
 
 <style>
+  .intro {
+    margin-bottom: var(--space-2);
+  }
   .tool-area {
-    margin-block: var(--space-4);
+    margin-block: var(--space-3) var(--space-5);
   }
   .tool-content:empty {
     display: none;

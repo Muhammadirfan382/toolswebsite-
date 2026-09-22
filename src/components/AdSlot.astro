@@ -1,0 +1,28 @@
+---
+/**
+ * Reserved space for a future ad unit. Fixed min-height prevents layout shift when ads load.
+ * Renders nothing while ADS_ENABLED is false (src/data/site.ts). No ad code yet (Phase 4).
+ */
+import { ADS_ENABLED } from '../data/site';
+
+interface Props {
+  id: string;
+  minHeight?: number;
+}
+
+const { id, minHeight = 280 } = Astro.props;
+---
+
+{
+  ADS_ENABLED && (
+    <div class="ad-slot" data-slot={id} style={`min-height:${minHeight}px`} aria-hidden="true" />
+  )
+}
+
+<style>
+  .ad-slot {
+    margin-block: var(--space-4);
+    background: var(--surface-2);
+    border-radius: var(--radius);
+  }
+</style>

@@ -1,0 +1,201 @@
+---
+/**
+ * Drag-and-drop zone plus a normal "Choose files" button, file list with reorder/remove,
+ * type/size validation and paste support. Emits a bubbling 'files-changed' CustomEvent<File[]>.
+ */
+interface Props {
+  /** Same format as <input accept>, e.g. "application/pdf,.pdf". */
+  accept: string;
+  /** Plain-English description of accepted files, used in messages: "PDF files". */
+  acceptLabel: string;
+  multiple?: boolean;
+  maxSizeMB?: number;
+  /** Accept images pasted with Ctrl+V. Defaults to true when images are accepted. */
+  paste?: boolean;
+  id?: string;
+  /** Text inside the zone. */
+  hint?: string;
+}
+
+const {
+  accept,
+  acceptLabel,
+  multiple = false,
+  maxSizeMB = 50,
+  id = 'file-drop',
+  hint,
+} = Astro.props;
+const paste = Astro.props.paste ?? /image/.test(accept);
+const buttonText = multiple ? 'Choose files' : 'Choose file';
+const zoneHint =
+  hint ??
+  `${multiple ? 'Drop files here' : 'Drop a file here'}${paste ? ', paste an image,' : ''} or use the button.`;
+---
+
+<div
+  class="file-drop"
+  id={id}
+  data-file-drop
+  data-accept={accept}
+  data-accept-label={acceptLabel}
+  data-multiple={String(multiple)}
+  data-max-size-mb={String(maxSizeMB)}
+  data-paste={String(paste)}
+>
+  <div class="fd-zone" data-fd-zone>
+    <svg
+      class="fd-icon"
+      width="40"
+      height="40"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+      focusable="false"><path d="M12 15V4m0 0L8 8m4-4 4 4M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"></path></svg
+    >
+    <button type="button" class="btn" data-fd-choose aria-describedby={`${id}-hint`}>
+      {buttonText}
+    </button>
+    <p class="fd-hint" id={`${id}-hint`}>
+      {zoneHint}
+      <span class="fd-limits">{acceptLabel}, up to {maxSizeMB} MB each.</span>
+    </p>
+    <input
+      type="file"
+      class="visually-hidden"
+      accept={accept}
+      multiple={multiple}
+      tabindex="-1"
+      aria-hidden="true"
+      data-fd-input
+    />
+    <noscript><p class="fd-noscript">This tool needs JavaScript turned on to work.</p></noscript>
+  </div>
+
+  <div class="fd-error" role="alert" data-fd-error hidden></div>
+  <p class="visually-hidden" aria-live="polite" data-fd-status></p>
+  <ol class="fd-list" data-fd-list hidden aria-label="Selected files"></ol>
+</div>
+
+<script>
+  import { initAllFileDrops } from '../lib/file-drop';
+  initAllFileDrops();
+</script>
+
+<style>
+  .fd-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-5) var(--space-3);
+    text-align: center;
+    background: var(--surface);
+    border: 2px dashed var(--border-strong);
+    border-radius: var(--radius);
+    transition: border-color 0.15s, background-color 0.15s;
+  }
+  .fd-zone.is-over {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .file-drop.is-busy .fd-zone {
+    opacity: 0.6;
+  }
+  .fd-icon {
+    color: var(--accent);
+  }
+  .fd-hint {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+  }
+  .fd-limits {
+    display: block;
+  }
+  .fd-noscript {
+    color: var(--danger);
+    font-weight: 600;
+  }
+  .fd-error {
+    margin-top: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    background: var(--danger-soft);
+    color: var(--danger);
+    border-radius: var(--radius);
+    font-size: var(--text-sm);
+  }
+  .fd-error :global(p) {
+    margin: var(--space-1) 0;
+  }
+  .fd-list {
+    list-style: none;
+    margin: var(--space-3) 0 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-2);
+  }
+  .fd-list :global(.fd-item) {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .fd-list :global(.fd-item[draggable='true']) {
+    cursor: grab;
+  }
+  .fd-list :global(.is-dragging) {
+    opacity: 0.5;
+  }
+  .fd-list :global(.fd-handle) {
+    color: var(--text-muted);
+    letter-spacing: -2px;
+  }
+  .fd-list :global(.fd-info) {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .fd-list :global(.fd-name) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+  }
+  .fd-list :global(.fd-size) {
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+  }
+  .fd-list :global(.fd-actions) {
+    display: flex;
+    flex: none;
+  }
+  .fd-list :global(.fd-btn) {
+    width: var(--tap);
+    height: var(--tap);
+    border: 0;
+    background: transparent;
+    color: var(--text);
+    border-radius: var(--radius);
+    font: inherit;
+    font-size: 1.1rem;
+    cursor: pointer;
+  }
+  .fd-list :global(.fd-btn:hover:not(:disabled)) {
+    background: var(--surface-2);
+  }
+  .fd-list :global(.fd-btn:disabled) {
+    color: var(--border-strong);
+    cursor: default;
+  }
+  .fd-list :global(.fd-remove:hover:not(:disabled)) {
+    color: var(--danger);
+  }
+</style>

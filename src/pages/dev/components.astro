@@ -1,0 +1,117 @@
+---
+/** Developer test page for shared components. noindex and excluded from the sitemap. */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PrivacyBadge from '../../components/PrivacyBadge.astro';
+import FileDrop from '../../components/FileDrop.astro';
+import ResultBox from '../../components/ResultBox.astro';
+import Progress from '../../components/Progress.astro';
+import AdSlot from '../../components/AdSlot.astro';
+import HowToSteps from '../../components/HowToSteps.astro';
+import FAQ from '../../components/FAQ.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import RelatedTools from '../../components/RelatedTools.astro';
+import { ADS_ENABLED } from '../../data/site';
+---
+
+<BaseLayout title="Component test page (dev)" description="Internal test page for shared components." noindex>
+  <div class="container">
+    <Breadcrumbs items={[{ name: 'Home', path: '/' }, { name: 'Dev: components', path: '/dev/components' }]} />
+    <h1>Component test page</h1>
+    <p class="lead">Internal page for testing shared components. Not linked and not indexed.</p>
+
+    <h2>PrivacyBadge</h2>
+    <PrivacyBadge />
+
+    <h2>FileDrop (images, multiple, 5 MB) + Progress + worker + ResultBox</h2>
+    <FileDrop id="demo-images" accept="image/jpeg,image/png,image/webp" acceptLabel="JPG, PNG or WebP images" multiple maxSizeMB={5} />
+    <p class="actions">
+      <button type="button" class="btn" id="demo-run" disabled>Run demo task (checksum in a worker)</button>
+      <button type="button" class="btn btn--secondary" id="demo-sample">Show sample result</button>
+    </p>
+    <Progress id="demo-progress" />
+    <p id="demo-output" class="muted" aria-live="polite"></p>
+    <ResultBox id="demo-result" zipName="demo-files.zip" />
+
+    <h2>FileDrop (single PDF, 1 MB)</h2>
+    <FileDrop id="demo-pdf" accept="application/pdf,.pdf" acceptLabel="PDF files" maxSizeMB={1} />
+    <p id="demo-pdf-out" class="muted" aria-live="polite"></p>
+
+    <h2>AdSlot</h2>
+    <p class="muted">ADS_ENABLED = {String(ADS_ENABLED)}. When false, nothing renders below.</p>
+    <AdSlot id="dev-demo" />
+
+    <HowToSteps heading="HowToSteps demo" steps={['Choose your files.', 'Pick your options.', 'Download the result.']} />
+    <FAQ faqs={[{ q: 'Is this a demo question?', a: 'Yes. This is the FAQ component.' }, { q: 'Does it use details/summary?', a: 'Yes, so it works without JavaScript.' }]} />
+    <RelatedTools slugs={['merge-pdf', 'compress-image', 'qr-code-generator', 'word-counter']} />
+  </div>
+</BaseLayout>
+
+<script>
+  import { fileDropFor } from '../../lib/file-drop';
+  import { resultBoxFor } from '../../lib/result-box';
+  import { progressFor } from '../../lib/progress';
+  import { runTask } from '../../lib/worker-utils';
+  import { checksumFiles } from '../../lib/dev/checksum';
+
+  const dropEl = document.getElementById('demo-images')!;
+  const runBtn = document.getElementById('demo-run') as HTMLButtonElement;
+  const output = document.getElementById('demo-output')!;
+  const resultEl = document.getElementById('demo-result')!;
+  const progress = progressFor(document.getElementById('demo-progress')!)!;
+  const drop = fileDropFor(dropEl)!;
+  const result = resultBoxFor(resultEl)!;
+
+  dropEl.addEventListener('files-changed', (e) => {
+    const files = (e as CustomEvent<File[]>).detail;
+    runBtn.disabled = files.length === 0;
+    output.textContent = `files-changed: ${files.map((f) => f.name).join(', ') || '(none)'}`;
+  });
+
+  runBtn.addEventListener('click', async () => {
+    drop.setBusy(true);
+    runBtn.disabled = true;
+    try {
+      const sums = await runTask({
+        createWorker: () =>
+          new Worker(new URL('../../lib/dev/checksum.worker.ts', import.meta.url), { type: 'module' }),
+        fallback: checksumFiles,
+        input: drop.files,
+        onProgress: (done, total, label) => progress.set(done, total, label),
+      });
+      output.textContent = sums.map((s) => `${s.name}: ${s.crc}`).join(' · ');
+      result.show(drop.files.map((f) => ({ name: f.name, blob: f, originalSize: f.size, note: 'Unchanged copy (demo)' })));
+    } catch (err) {
+      output.textContent = `Error: ${(err as Error).message}`;
+    } finally {
+      progress.hide();
+      drop.setBusy(false);
+      runBtn.disabled = drop.files.length === 0;
+    }
+  });
+
+  document.getElementById('demo-sample')!.addEventListener('click', () => {
+    result.show([
+      { name: 'sample-a.txt', blob: new Blob(['a'.repeat(30_000)]), originalSize: 120_000 },
+      { name: 'sample-b.txt', blob: new Blob(['b'.repeat(90_000)]), originalSize: 80_000, note: 'Could not reach the 50 KB target.', warn: true },
+    ]);
+  });
+
+  resultEl.addEventListener('start-over', () => {
+    drop.clear();
+    output.textContent = '';
+  });
+
+  document.getElementById('demo-pdf')!.addEventListener('files-changed', (e) => {
+    document.getElementById('demo-pdf-out')!.textContent =
+      `files-changed: ${(e as CustomEvent<File[]>).detail.map((f) => f.name).join(', ') || '(none)'}`;
+  });
+</script>
+
+<style>
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+  }
+</style>

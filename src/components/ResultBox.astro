@@ -1,0 +1,90 @@
+---
+/** Output file list with before/after sizes, per-file download, ZIP download and "Start over". */
+interface Props {
+  id?: string;
+  /** File name for "Download all as ZIP". */
+  zipName?: string;
+  heading?: string;
+}
+
+const { id = 'result-box', zipName = 'files.zip', heading = 'Your files are ready' } = Astro.props;
+---
+
+<section class="result-box" id={id} data-result-box data-zip-name={zipName} hidden aria-labelledby={`${id}-h`}>
+  <h2 id={`${id}-h`} class="rb-heading" tabindex="-1" data-rb-heading>{heading}</h2>
+  <p class="rb-summary" data-rb-summary hidden></p>
+  <ul class="rb-list" data-rb-list></ul>
+  <div class="rb-actions">
+    <button type="button" class="btn" data-rb-zip hidden>Download all as ZIP</button>
+    <button type="button" class="btn btn--secondary" data-rb-start-over>Start over</button>
+  </div>
+</section>
+
+<script>
+  import { initAllResultBoxes } from '../lib/result-box';
+  initAllResultBoxes();
+</script>
+
+<style>
+  .result-box {
+    margin-top: var(--space-4);
+    padding: var(--space-3);
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+  }
+  .rb-heading {
+    font-size: var(--text-lg);
+    margin: 0 0 var(--space-2);
+  }
+  .rb-heading:focus {
+    outline: none;
+  }
+  .rb-heading:focus-visible {
+    outline: 3px solid var(--focus);
+  }
+  .rb-summary {
+    font-weight: 600;
+    margin-bottom: var(--space-2);
+  }
+  .rb-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 var(--space-3);
+    display: grid;
+    gap: var(--space-2);
+  }
+  .rb-list :global(.rb-item) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: var(--space-2) 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .rb-list :global(.rb-info) {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1 1 12rem;
+  }
+  .rb-list :global(.rb-name) {
+    font-weight: 500;
+    overflow-wrap: anywhere;
+  }
+  .rb-list :global(.rb-size),
+  .rb-list :global(.rb-note) {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+  }
+  .rb-list :global(.rb-warn) {
+    color: var(--warning);
+    font-weight: 600;
+  }
+  .rb-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+</style>

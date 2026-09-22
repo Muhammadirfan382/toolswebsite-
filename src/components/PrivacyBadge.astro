@@ -1,0 +1,32 @@
+---
+import Icon from './Icon.astro';
+
+interface Props {
+  /** Text-only tools say "text" instead of "files". */
+  subject?: string;
+}
+const { subject = 'files' } = Astro.props;
+---
+
+<p class="privacy-badge">
+  <Icon name="lock" size={18} />
+  <span>Runs in your browser — {subject} never leave your device</span>
+</p>
+
+<style>
+  .privacy-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0 0 var(--space-3);
+    padding-left: var(--space-2);
+    border-left: 3px solid var(--accent);
+    color: var(--text);
+    font-size: var(--text-sm);
+    font-weight: 500;
+  }
+  .privacy-badge :global(svg) {
+    color: var(--accent);
+    flex: none;
+  }
+</style>

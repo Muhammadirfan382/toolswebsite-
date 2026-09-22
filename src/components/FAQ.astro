@@ -1,0 +1,64 @@
+---
+export interface FaqItem {
+  q: string;
+  a: string;
+}
+interface Props {
+  faqs: FaqItem[];
+}
+const { faqs } = Astro.props;
+---
+
+{
+  faqs.length > 0 && (
+    <section class="faq" aria-labelledby="faq-h">
+      <h2 id="faq-h">Frequently asked questions</h2>
+      {faqs.map((f) => (
+        <details>
+          <summary>
+            <h3>{f.q}</h3>
+          </summary>
+          <p>{f.a}</p>
+        </details>
+      ))}
+    </section>
+  )
+}
+
+<style>
+  .faq {
+    max-width: var(--prose-width);
+  }
+  details {
+    border-bottom: 1px solid var(--border);
+  }
+  summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    min-height: var(--tap);
+    padding: var(--space-2) 0;
+    cursor: pointer;
+    list-style: none;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+  summary::after {
+    content: '+';
+    font-size: 1.4rem;
+    color: var(--accent);
+    flex: none;
+  }
+  details[open] summary::after {
+    content: '−';
+  }
+  h3 {
+    font-size: var(--text-base);
+    margin: 0;
+  }
+  details p {
+    color: var(--text-muted);
+  }
+</style>

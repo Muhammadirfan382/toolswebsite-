@@ -14,3 +14,6 @@ export const SITE = {
   themeColorLight: '#1D6B52',
   themeColorDark: '#0F1A16',
 } as const;
+
+/** Ads are off in Phase 1. When false, <AdSlot> renders nothing at all. */
+export const ADS_ENABLED = false;
