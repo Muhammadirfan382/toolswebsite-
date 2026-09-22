@@ -5,7 +5,7 @@
 import { chromium, type FullConfig } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { generatePdfs } from './pdf-fixtures';
+import { generatePdfs } from './pdf-fixtures.ts';
 
 export const FIXTURES = fileURLToPath(new URL('./generated/', import.meta.url));
 

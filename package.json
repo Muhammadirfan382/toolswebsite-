@@ -20,7 +20,9 @@
     "test:all": "npm run test:unit && npm run test",
     "audit": "node scripts/audit-dist.mjs",
     "check:bundles": "node scripts/check-bundles.mjs",
-    "verify": "npm run check && npm run test:unit && npm run build && npm run audit && npm run check:bundles && npm run test:e2e"
+    "verify": "npm run check && npm run test:unit && npm run build && npm run audit && npm run check:bundles && npm run test:e2e",
+    "shots": "node scripts/shots.ts",
+    "build:preview": "node scripts/build-preview.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.4",

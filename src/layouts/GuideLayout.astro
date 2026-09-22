@@ -1,0 +1,256 @@
+---
+/**
+ * Article layout for guides.
+ * Order: breadcrumbs → H1 → author + dates + reading time → short answer → table of contents →
+ *        body → how we tested → "Try it now" tool cards → FAQ → related guides.
+ * JSON-LD: Article, BreadcrumbList, FAQPage (if FAQs), HowTo (only if howToSteps is set).
+ */
+import { getImage } from 'astro:assets';
+import { render } from 'astro:content';
+import BaseLayout from './BaseLayout.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+import FAQ from '../components/FAQ.astro';
+import TryTool from '../components/TryTool.astro';
+import GuideCard from '../components/GuideCard.astro';
+import { SITE } from '../data/site';
+import { getGuideCategory } from '../data/guides';
+import { formatDate, guidePath, isoDate, readingMinutes, relatedGuides, type Guide } from '../lib/guides';
+import { breadcrumbList, faqPage, howTo, toJsonLd } from '../lib/schema';
+
+interface Props {
+  guide: Guide;
+  all: Guide[];
+}
+const { guide, all } = Astro.props;
+const d = guide.data;
+const { Content, headings } = await render(guide);
+const toc = headings.filter((h) => h.depth === 2);
+const category = getGuideCategory(d.category);
+const site = Astro.site!;
+const url = new URL(guidePath(guide), site).href;
+const hero = d.heroImage ? await getImage({ src: d.heroImage, width: 1200, format: 'webp' }) : null;
+const imageUrl = new URL(hero?.src ?? SITE.defaultOgImage, site).href;
+const related = relatedGuides(guide, all);
+const minutes = readingMinutes(guide);
+
+const crumbs = [
+  { name: 'Home', path: '/' },
+  { name: 'Guides', path: '/guides' },
+  { name: category.name, path: `/guides/${category.id}` },
+  { name: d.h1 ?? d.title, path: guidePath(guide) },
+];
+
+const schemas = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: d.h1 ?? d.title,
+    description: d.description,
+    image: [imageUrl],
+    datePublished: isoDate(d.publishedAt),
+    dateModified: isoDate(d.updatedAt),
+    author: { '@type': 'Person', name: d.author, url: new URL('/about#author', site).href },
+    publisher: { '@type': 'Organization', name: SITE.brand, url: SITE.url },
+    mainEntityOfPage: url,
+  },
+  breadcrumbList(crumbs, site),
+  ...(d.faqs.length ? [faqPage(d.faqs)] : []),
+  ...(d.howToSteps ? [howTo(d.h1 ?? d.title, d.howToSteps)] : []),
+];
+---
+
+<BaseLayout title={`${d.title} | ${SITE.brand}`} description={d.description} ogType="article" ogImage={hero?.src} noindex={d.draft}>
+  <Fragment slot="head">
+    {schemas.map((s) => <script type="application/ld+json" set:html={toJsonLd(s)} />)}
+    <meta property="article:published_time" content={isoDate(d.publishedAt)} />
+    <meta property="article:modified_time" content={isoDate(d.updatedAt)} />
+  </Fragment>
+
+  <div class="container">
+    {
+      d.draft && (
+        <p class="draft-banner" role="note">
+          DRAFT: not published. Only visible in development or a SHOW_DRAFTS preview build. Review, then set{' '}
+          <code>draft: false</code>.
+        </p>
+      )
+    }
+    <Breadcrumbs items={crumbs} />
+
+    <article class="guide">
+      <header>
+        <h1>{d.h1 ?? d.title}</h1>
+        <p class="byline">
+          By <a href="/about#author" rel="author">{d.author}</a>
+          <span aria-hidden="true">·</span> Published <time datetime={isoDate(d.publishedAt)}>{formatDate(d.publishedAt)}</time>
+          {
+            isoDate(d.updatedAt) !== isoDate(d.publishedAt) && (
+              <>
+                <span aria-hidden="true">·</span> Updated <time datetime={isoDate(d.updatedAt)}>{formatDate(d.updatedAt)}</time>
+              </>
+            )
+          }
+          <span aria-hidden="true">·</span> {minutes} min read
+        </p>
+      </header>
+
+      <div class="short-answer" role="note" aria-label="Short answer">
+        <p class="label">Short answer</p>
+        <p>{d.shortAnswer}</p>
+      </div>
+
+      {
+        hero && (
+          <figure class="hero">
+            <img src={hero.src} alt={d.heroAlt} width={hero.attributes.width} height={hero.attributes.height} decoding="async" />
+          </figure>
+        )
+      }
+
+      {
+        toc.length >= 3 && (
+          <nav class="toc" aria-labelledby="toc-h">
+            <p id="toc-h" class="label">On this page</p>
+            <ol>
+              {toc.map((h) => (
+                <li>
+                  <a href={`#${h.slug}`}>{h.text}</a>
+                </li>
+              ))}
+            </ol>
+          </nav>
+        )
+      }
+
+      <div class="prose body">
+        <Content />
+      </div>
+
+      <aside class="tested" aria-labelledby="tested-h">
+        <h2 id="tested-h">How we tested</h2>
+        <p>{d.howWeTested}</p>
+      </aside>
+
+      <section class="try" aria-labelledby="try-h">
+        <h2 id="try-h">Try it now</h2>
+        <div class="try-list">
+          {d.relatedTools.map((slug) => <TryTool slug={slug} />)}
+        </div>
+      </section>
+    </article>
+
+    <FAQ faqs={d.faqs} />
+
+    {
+      related.length > 0 && (
+        <section class="related-guides" aria-labelledby="rg-h">
+          <h2 id="rg-h">Related guides</h2>
+          <ul class="tool-grid">
+            {related.map((g) => (
+              <li>
+                <GuideCard guide={g} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+  </div>
+</BaseLayout>
+
+<style>
+  .guide {
+    max-width: var(--prose-width);
+  }
+  .draft-banner {
+    margin-top: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    background: var(--warning-soft);
+    border-inline-start: 4px solid var(--warning);
+    font-weight: 600;
+  }
+  .byline {
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 var(--space-2);
+  }
+  .byline a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap);
+    margin-block: calc((var(--tap) - 1.6em) / -2);
+  }
+  .label {
+    font-weight: 700;
+    font-size: var(--text-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--accent);
+    margin: 0 0 var(--space-1);
+  }
+  .short-answer {
+    padding: var(--space-3);
+    background: var(--accent-soft);
+    border-inline-start: 4px solid var(--accent);
+    margin-bottom: var(--space-4);
+  }
+  .short-answer p:last-child {
+    margin: 0;
+    font-size: var(--text-lg);
+  }
+  .hero {
+    margin: 0 0 var(--space-4);
+  }
+  .hero img {
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--border);
+  }
+  .toc {
+    padding: var(--space-3);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    margin-bottom: var(--space-4);
+  }
+  .toc ol {
+    margin: 0;
+    padding-inline-start: var(--space-4);
+  }
+  .toc a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap);
+  }
+  .body :global(img) {
+    height: auto;
+    border: 1px solid var(--border);
+  }
+  .body :global(h2) {
+    margin-top: var(--space-5);
+    scroll-margin-top: var(--space-3);
+  }
+  .body :global(table) {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  .tested {
+    margin-top: var(--space-5);
+    padding: var(--space-3);
+    background: var(--surface);
+    border: 1px solid var(--border);
+  }
+  .tested h2 {
+    margin-top: 0;
+    font-size: var(--text-lg);
+  }
+  .tested p:last-child {
+    margin: 0;
+  }
+  .try-list {
+    display: grid;
+    gap: var(--space-2);
+  }
+</style>

@@ -9,6 +9,8 @@ export const SITE = {
   domain: DOMAIN,
   url: `https://${DOMAIN}`,
   email: '{{EMAIL}}', // TODO: {{EMAIL}}
+  /** Real person shown as the author of guides (Phase 3 rule 6). */
+  author: '{{AUTHOR_NAME}}', // TODO: {{AUTHOR_NAME}}
   privacyLine: 'Files are processed in your browser and never uploaded.',
   defaultOgImage: '/og-default.png',
   themeColorLight: '#1D6B52',

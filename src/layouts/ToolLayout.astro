@@ -15,6 +15,8 @@ import AdSlot from '../components/AdSlot.astro';
 import HowToSteps from '../components/HowToSteps.astro';
 import FAQ, { type FaqItem } from '../components/FAQ.astro';
 import RelatedTools from '../components/RelatedTools.astro';
+import GuideCard from '../components/GuideCard.astro';
+import { getVisibleGuides } from '../lib/guides';
 import { SITE } from '../data/site';
 import { getCategory, toolPath, type Tool } from '../data/tools';
 import { breadcrumbList, faqPage, howTo, softwareApplication, toJsonLd } from '../lib/schema';
@@ -43,6 +45,8 @@ const h1 = Astro.props.h1 ?? data.h1;
 const intro = Astro.props.intro ?? data.intro;
 const howToSteps = Astro.props.howToSteps ?? data.howToSteps;
 const faqs = Astro.props.faqs ?? data.faqs;
+
+const toolGuides = (await getVisibleGuides()).filter((g) => g.data.relatedTools.includes(tool.slug)).slice(0, 6);
 
 const site = Astro.site!;
 const category = getCategory(tool.category);
@@ -85,6 +89,21 @@ const schemas = [
     </article>
 
     <FAQ faqs={faqs} />
+
+    {
+      toolGuides.length > 0 && (
+        <section class="tool-guides" aria-labelledby="tool-guides-h">
+          <h2 id="tool-guides-h">Guides</h2>
+          <ul class="tool-grid">
+            {toolGuides.map((g) => (
+              <li>
+                <GuideCard guide={g} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
 
     <RelatedTools slugs={tool.related} />
   </div>

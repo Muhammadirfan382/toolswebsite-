@@ -1,6 +1,9 @@
 ---
 import { SITE } from '../data/site';
 import { CATEGORIES, toolsIn, toolPath } from '../data/tools';
+import { getVisibleGuides } from '../lib/guides';
+
+const hasGuides = (await getVisibleGuides()).length > 0;
 
 const year = new Date().getFullYear();
 ---
@@ -27,6 +30,7 @@ const year = new Date().getFullYear();
       <section aria-labelledby="footer-site">
         <h2 id="footer-site">{SITE.brand}</h2>
         <ul>
+          {hasGuides && <li><a href="/guides">Guides</a></li>}
           <li><a href="/about">About</a></li>
           <li><a href="/privacy-policy">Privacy Policy</a></li>
           <li><a href="/terms">Terms of Use</a></li>

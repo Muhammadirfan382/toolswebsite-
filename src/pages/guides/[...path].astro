@@ -1,0 +1,138 @@
+---
+/**
+ * /guides                 → index with category filter
+ * /guides/<category>      → one category (only categories that have guides)
+ * /guides/<slug>          → article
+ * Nothing is generated until at least one guide is visible (published, or a draft in dev/preview),
+ * so no empty "coming soon" pages are ever published.
+ */
+import type { GetStaticPaths } from 'astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import GuideLayout from '../../layouts/GuideLayout.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import GuideCard from '../../components/GuideCard.astro';
+import { SITE } from '../../data/site';
+import { GUIDE_CATEGORIES, getGuideCategory, type GuideCategoryId } from '../../data/guides';
+import { getVisibleGuides, type Guide } from '../../lib/guides';
+
+type Props =
+  | { kind: 'index'; all: Guide[] }
+  | { kind: 'category'; category: GuideCategoryId; all: Guide[] }
+  | { kind: 'article'; guide: Guide; all: Guide[] };
+
+export const getStaticPaths = (async () => {
+  const all = await getVisibleGuides();
+  if (all.length === 0) return [];
+  const categories = GUIDE_CATEGORIES.filter((c) => all.some((g) => g.data.category === c.id));
+  return [
+    { params: { path: undefined }, props: { kind: 'index', all } },
+    ...categories.map((c) => ({ params: { path: c.id }, props: { kind: 'category', category: c.id, all } })),
+    ...all.map((g) => ({ params: { path: g.data.slug }, props: { kind: 'article', guide: g, all } })),
+  ];
+}) satisfies GetStaticPaths;
+
+const props = Astro.props as Props;
+const all = props.all;
+const activeCategory = props.kind === 'category' ? getGuideCategory(props.category) : null;
+const listed = activeCategory ? all.filter((g) => g.data.category === activeCategory.id) : all;
+const categoriesWithGuides = GUIDE_CATEGORIES.filter((c) => all.some((g) => g.data.category === c.id));
+const allDrafts = listed.every((g) => g.data.draft);
+---
+
+{
+  props.kind === 'article' ? (
+    <GuideLayout guide={props.guide} all={all} />
+  ) : (
+    <BaseLayout
+      title={activeCategory ? `${activeCategory.title} | ${SITE.brand}` : `Guides – PDF, Image, QR and Writing Help | ${SITE.brand}`}
+      description={
+        activeCategory
+          ? activeCategory.description
+          : 'Practical how-to guides for PDFs, images, QR codes and word counts, tested with our free tools that run in your browser.'
+      }
+      noindex={allDrafts}
+    >
+      <div class="container">
+        <Breadcrumbs
+          items={[
+            { name: 'Home', path: '/' },
+            { name: 'Guides', path: '/guides' },
+            ...(activeCategory ? [{ name: activeCategory.name, path: `/guides/${activeCategory.id}` }] : []),
+          ]}
+        />
+        <h1>{activeCategory ? activeCategory.name : 'Guides'}</h1>
+        <p class="lead">
+          {activeCategory
+            ? activeCategory.intro
+            : 'Step-by-step help for everyday file, photo and writing tasks, tested with our own free tools.'}
+        </p>
+
+        <nav class="filter" aria-label="Guide categories">
+          <ul>
+            <li>
+              <a href="/guides" aria-current={!activeCategory ? 'page' : undefined}>
+                All
+              </a>
+            </li>
+            {categoriesWithGuides.map((c) => (
+              <li>
+                <a href={`/guides/${c.id}`} aria-current={activeCategory?.id === c.id ? 'page' : undefined}>
+                  {c.name}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <ul class="tool-grid list">
+          {listed.map((g) => (
+            <li>
+              <GuideCard guide={g} headingLevel="h2" />
+            </li>
+          ))}
+        </ul>
+        <p class="muted small">
+          <a href="/guides/rss.xml">RSS feed</a> of new guides.
+        </p>
+      </div>
+    </BaseLayout>
+  )
+}
+
+<style>
+  .filter ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    list-style: none;
+    padding: 0;
+    margin: var(--space-3) 0;
+  }
+  .filter a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap);
+    padding: 0 var(--space-3);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .filter a[aria-current='page'] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--on-accent);
+  }
+  .list {
+    margin-top: var(--space-3);
+  }
+  .small {
+    font-size: var(--text-sm);
+  }
+  .small a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap);
+  }
+</style>

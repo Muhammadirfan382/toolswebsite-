@@ -1,6 +1,6 @@
 /** One real task per tool, shared by the smoke, privacy and offline tests. */
 import { expect, type Page } from '@playwright/test';
-import { chooseFiles, fixture } from './helpers';
+import { chooseFiles, fixture } from './helpers.ts';
 
 export interface HappyPath {
   slug: string;

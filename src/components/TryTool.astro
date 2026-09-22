@@ -1,0 +1,77 @@
+---
+/** "Try it now" card linking a guide to one of our tools. */
+import Icon from './Icon.astro';
+import { getTool, toolPath } from '../data/tools';
+
+interface Props {
+  slug: string;
+}
+const tool = getTool(Astro.props.slug);
+---
+
+<a class="try-tool" href={toolPath(tool.slug)}>
+  <span class="icon"><Icon name={tool.icon} size={28} /></span>
+  <span class="body">
+    <span class="kicker">Try it now, free</span>
+    <span class="name">{tool.name}</span>
+    <span class="desc">{tool.description}</span>
+  </span>
+  <span class="btn go" aria-hidden="true">Open</span>
+</a>
+
+<style>
+  .try-tool {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    color: var(--text);
+    text-decoration: none;
+  }
+  .try-tool:hover {
+    color: var(--text);
+  }
+  .try-tool:hover .go {
+    background: var(--accent-hover);
+  }
+  .icon {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    color: var(--accent);
+  }
+  .body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .kicker {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+  }
+  .name {
+    font-weight: 700;
+    font-size: var(--text-lg);
+  }
+  .desc {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+  }
+  .go {
+    flex: none;
+  }
+  @media (max-width: 30rem) {
+    .go {
+      display: none;
+    }
+  }
+</style>

@@ -1,5 +1,9 @@
 # Cloudflare Pages redirects (path-based only).
 #
+# Old /blog/* URLs from the keyword sheet → the guides section.
+/blog  /guides  301
+/blog/*  /guides/:splat  301
+#
 # Trailing slash → no trailing slash, e.g. /merge-pdf/ → /merge-pdf (the root "/" is not affected).
 /*/  /:splat  301
 #

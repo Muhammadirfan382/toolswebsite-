@@ -1,8 +1,15 @@
 ---
 import { SITE } from '../data/site';
 import { CATEGORIES } from '../data/tools';
+import { getVisibleGuides } from '../lib/guides';
 
 const current = Astro.url.pathname.replace(/\.html$/, '');
+// "Guides" appears only once at least one guide exists (published, or a draft in dev/preview).
+const nav = [
+  ...CATEGORIES.map((c) => ({ path: c.path, label: c.navLabel })),
+  ...((await getVisibleGuides()).length ? [{ path: '/guides', label: 'Guides' }] : []),
+];
+const isCurrent = (path: string) => current === path || (path === '/guides' && current.startsWith('/guides/'));
 ---
 
 <header class="site-header">
@@ -12,10 +19,10 @@ const current = Astro.url.pathname.replace(/\.html$/, '');
     <nav class="nav-desktop" aria-label="Main">
       <ul>
         {
-          CATEGORIES.map((c) => (
+          nav.map((n) => (
             <li>
-              <a href={c.path} aria-current={current === c.path ? 'page' : undefined}>
-                {c.navLabel}
+              <a href={n.path} aria-current={isCurrent(n.path) ? 'page' : undefined}>
+                {n.label}
               </a>
             </li>
           ))
@@ -32,10 +39,10 @@ const current = Astro.url.pathname.replace(/\.html$/, '');
       <nav aria-label="Main (mobile)">
         <ul>
           {
-            CATEGORIES.map((c) => (
+            nav.map((n) => (
               <li>
-                <a href={c.path} aria-current={current === c.path ? 'page' : undefined}>
-                  {c.navLabel}
+                <a href={n.path} aria-current={isCurrent(n.path) ? 'page' : undefined}>
+                  {n.label}
                 </a>
               </li>
             ))

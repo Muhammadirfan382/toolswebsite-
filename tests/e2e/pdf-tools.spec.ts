@@ -113,3 +113,12 @@ test.describe('PDF to JPG', () => {
     await expect(page.locator('#pj-errors')).toContainText('could not be opened');
   });
 });
+
+test('a single result does not offer "Download all as ZIP"', async ({ page }) => {
+  await page.goto('/merge-pdf');
+  const { chooseFiles: choose, fixture: fx } = await import('./helpers.ts');
+  await choose(page, 'mp-drop', [fx('three-pages.pdf'), fx('two-pages.pdf')]);
+  await page.getByRole('button', { name: 'Merge PDFs' }).click();
+  await expect(page.locator('#mp-result .rb-item')).toHaveCount(1, { timeout: 30_000 });
+  await expect(page.getByRole('button', { name: 'Download all as ZIP' })).toBeHidden();
+});

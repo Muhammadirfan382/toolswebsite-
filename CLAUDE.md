@@ -46,6 +46,10 @@ and must stay true in code.
 - `npm run audit`: SEO / link / accessibility audit of dist/
 - `npm run check:bundles`: initial-load budget and lazy-library check
 - `npm run verify`: everything above plus the type check (run before every deploy)
+- `npm run build:preview`: build that includes draft guides (DRAFT banner, noindex, not in
+  sitemap/RSS). For local review only; never deploy it. `npm run dev` also shows drafts.
+- `npm run shots -- <tool-slug>`: screenshots of our tool (mobile + desktop, WebP) into
+  src/assets/guides/<slug>/ for guide articles. Run `npm run build` first.
 - Deployment steps: DEPLOY.md. Audit results and the VERIFY list: AUDIT.md.
 
 ## Project notes

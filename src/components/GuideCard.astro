@@ -1,0 +1,48 @@
+---
+import { formatDate, guidePath, readingMinutes, type Guide } from '../lib/guides';
+import { getGuideCategory } from '../data/guides';
+
+interface Props {
+  guide: Guide;
+  headingLevel?: 'h2' | 'h3';
+}
+const { guide, headingLevel: Heading = 'h3' } = Astro.props;
+const d = guide.data;
+---
+
+<a class="card guide-card" href={guidePath(guide)}>
+  <span class="cat">{getGuideCategory(d.category).name}{d.draft && ' · DRAFT'}</span>
+  <Heading class="title">{d.h1 ?? d.title}</Heading>
+  <span class="desc">{d.description}</span>
+  <span class="meta">Updated {formatDate(d.updatedAt)} · {readingMinutes(guide)} min read</span>
+</a>
+
+<style>
+  .guide-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    height: 100%;
+    padding: var(--space-3);
+    color: var(--text);
+    text-decoration: none;
+  }
+  .guide-card:hover {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+  .cat {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .title {
+    font-size: var(--text-base);
+    margin: 0;
+  }
+  .desc,
+  .meta {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+  }
+</style>
