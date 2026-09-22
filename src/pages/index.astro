@@ -155,11 +155,13 @@ const jsonLd = [
   }
   .lead {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: var(--space-2);
   }
   .lock {
     display: inline-flex;
+    flex: none;
+    margin-top: 0.3em; /* line up with the first line of text */
     color: var(--accent);
   }
   .search {

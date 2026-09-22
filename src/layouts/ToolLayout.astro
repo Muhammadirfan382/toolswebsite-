@@ -100,4 +100,22 @@ const schemas = [
   .tool-content :global(h2) {
     margin-top: var(--space-5);
   }
+  /* Wide tables scroll inside their own box on small phones; the page never scrolls sideways. */
+  .tool-content :global(table) {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    margin-bottom: var(--space-3);
+  }
+  .tool-content :global(th),
+  .tool-content :global(td) {
+    white-space: nowrap;
+  }
+  @media (max-width: 30rem) {
+    .tool-content :global(th),
+    .tool-content :global(td) {
+      padding: var(--space-1) var(--space-2);
+      white-space: normal;
+    }
+  }
 </style>
