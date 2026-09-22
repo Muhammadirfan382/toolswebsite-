@@ -1,6 +1,8 @@
 ---
 import ToolLayout from '../layouts/ToolLayout.astro';
-import ComingSoon from '../components/ComingSoon.astro';
+import FileDrop from '../components/FileDrop.astro';
+import Progress from '../components/Progress.astro';
+import ResultBox from '../components/ResultBox.astro';
 import { getTool } from '../data/tools';
 import { SITE } from '../data/site';
 
@@ -14,6 +16,169 @@ const tool = getTool('jpg-to-pdf');
   h1={`${tool.name} Online Free`}
   intro={tool.description}
 >
-  <ComingSoon tool={tool} />
+  <FileDrop
+    id="jp-drop"
+    accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+    acceptLabel="JPG, PNG or WebP images"
+    multiple
+    maxSizeMB={50}
+    hint="Drop images here, paste an image, or use the button. Each image becomes one page, in this order."
+  />
+
+  <form class="panel opts" id="jp-form" novalidate>
+    <div class="form-grid">
+      <div class="field">
+        <label for="jp-size">Page size</label>
+        <select id="jp-size">
+          <option value="a4">A4</option>
+          <option value="letter">US Letter</option>
+          <option value="legal">US Legal</option>
+          <option value="fit">Fit to image</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="jp-orient">Orientation</label>
+        <select id="jp-orient">
+          <option value="auto">Automatic (match each image)</option>
+          <option value="portrait">Portrait</option>
+          <option value="landscape">Landscape</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="jp-margin">Margin</label>
+        <select id="jp-margin">
+          <option value="none">None</option>
+          <option value="small" selected>Small</option>
+          <option value="large">Large</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-grid">
+      <label class="check"><input type="checkbox" id="jp-compress" /> Compress images first (smaller PDF)</label>
+      <div class="field" id="jp-quality-wrap" hidden>
+        <label for="jp-quality">Quality: <output id="jp-quality-out" for="jp-quality">75</output></label>
+        <input type="range" id="jp-quality" min="10" max="95" value="75" />
+      </div>
+    </div>
+    <div class="actions">
+      <button type="submit" class="btn" id="jp-go">Create PDF</button>
+    </div>
+  </form>
+
+  <Progress id="jp-progress" />
+  <div class="error-box" id="jp-errors" role="alert" hidden></div>
+  <ResultBox id="jp-result" heading="Your PDF is ready" />
+
   <!-- TODO (Prompt 8): long content goes in slot="content" -->
 </ToolLayout>
+
+<script>
+  import { fileDropFor } from '../lib/file-drop';
+  import { resultBoxFor } from '../lib/result-box';
+  import { progressFor } from '../lib/progress';
+  import { runImageJob, imageErrorMessage } from '../lib/image/run';
+  import { typeOf } from '../lib/image/core';
+  import { jpegOrientation } from '../lib/image/exif';
+  import { opErrorMessage, pdfBlob, pdfOp } from '../lib/pdf/run';
+  import type { MARGINS, PAGE_SIZES } from '../lib/pdf/ops';
+
+  const $ = <T extends HTMLElement = HTMLInputElement>(id: string) => document.getElementById(id) as T;
+  const dropEl = $<HTMLElement>('jp-drop');
+  const drop = fileDropFor(dropEl)!;
+  const form = $<HTMLFormElement>('jp-form');
+  const result = resultBoxFor($<HTMLElement>('jp-result'))!;
+  const progress = progressFor($<HTMLElement>('jp-progress'))!;
+  const errorsEl = $<HTMLElement>('jp-errors');
+
+  function showErrors(list: string[]) {
+    errorsEl.replaceChildren(...list.map((t) => Object.assign(document.createElement('p'), { textContent: t })));
+    errorsEl.hidden = list.length === 0;
+  }
+
+  function sync() {
+    $<HTMLElement>('jp-quality-wrap').hidden = !$('jp-compress').checked;
+    $<HTMLOutputElement>('jp-quality-out').value = $('jp-quality').value;
+    $<HTMLSelectElement>('jp-orient').disabled = $<HTMLSelectElement>('jp-size').value === 'fit';
+  }
+  form.addEventListener('input', sync);
+  form.addEventListener('change', sync);
+  dropEl.addEventListener('files-changed', () => {
+    showErrors([]);
+    result.clear();
+  });
+
+  /** Bytes ready for pdf-lib: JPEG/PNG, upright, optionally compressed. */
+  async function prepare(file: File, compress: boolean, quality: number): Promise<{ bytes: ArrayBuffer; type: 'jpg' | 'png' }> {
+    const type = typeOf(file);
+    const bytes = await file.arrayBuffer();
+    if (!compress) {
+      // Embed JPEG and PNG as-is (no quality loss) unless the photo relies on EXIF rotation,
+      // which PDF viewers ignore.
+      if (type === 'image/png') return { bytes, type: 'png' };
+      if (type === 'image/jpeg' && jpegOrientation(new Uint8Array(bytes)) === 1) return { bytes, type: 'jpg' };
+    }
+    const lossless = !compress && type !== 'image/jpeg';
+    const r = await runImageJob({
+      file,
+      type: lossless ? 'image/png' : 'image/jpeg',
+      quality: compress ? quality : 0.92,
+      background: '#ffffff',
+    });
+    return { bytes: await r.blob.arrayBuffer(), type: lossless ? 'png' : 'jpg' };
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const files = drop.files;
+    if (files.length === 0) return showErrors(['Add at least one image first, using "Choose files" or drag and drop.']);
+    showErrors([]);
+    result.clear();
+    drop.setBusy(true);
+    $<HTMLButtonElement>('jp-go').disabled = true;
+    const errors: string[] = [];
+    const images: { bytes: ArrayBuffer; type: 'jpg' | 'png' }[] = [];
+    try {
+      for (const [i, file] of files.entries()) {
+        progress.set(i, files.length, `Preparing image ${i + 1} of ${files.length}`);
+        try {
+          images.push(await prepare(file, $('jp-compress').checked, Number($('jp-quality').value) / 100));
+        } catch (err) {
+          errors.push(imageErrorMessage(err, file));
+        }
+      }
+      if (images.length === 0) return showErrors(errors);
+      const out = await pdfOp(
+        {
+          op: 'images-to-pdf',
+          images,
+          pageSize: $<HTMLSelectElement>('jp-size').value as keyof typeof PAGE_SIZES | 'fit',
+          orientation: $<HTMLSelectElement>('jp-orient').value as 'auto' | 'portrait' | 'landscape',
+          margin: $<HTMLSelectElement>('jp-margin').value as keyof typeof MARGINS,
+        },
+        (d, t, l) => progress.set(d, t, l),
+      );
+      showErrors(errors.length ? [...errors, 'The other images were added to the PDF.'] : []);
+      const originalSize = files.reduce((s, f) => s + f.size, 0);
+      result.show([
+        {
+          name: files.length === 1 ? files[0]!.name.replace(/\.[^.]+$/, '.pdf') : 'images.pdf',
+          blob: pdfBlob(out.bytes),
+          originalSize,
+          note: `${images.length} ${images.length === 1 ? 'page' : 'pages'}`,
+        },
+      ]);
+    } catch (err) {
+      showErrors([opErrorMessage(err, files[0]!.name)]);
+    } finally {
+      progress.hide();
+      drop.setBusy(false);
+      $<HTMLButtonElement>('jp-go').disabled = false;
+    }
+  });
+
+  $<HTMLElement>('jp-result').addEventListener('start-over', () => {
+    drop.clear();
+    showErrors([]);
+  });
+  sync();
+</script>

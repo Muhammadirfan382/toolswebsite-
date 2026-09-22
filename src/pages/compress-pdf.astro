@@ -1,10 +1,15 @@
 ---
 import ToolLayout from '../layouts/ToolLayout.astro';
-import ComingSoon from '../components/ComingSoon.astro';
+import FileDrop from '../components/FileDrop.astro';
+import Progress from '../components/Progress.astro';
+import ResultBox from '../components/ResultBox.astro';
 import { getTool } from '../data/tools';
 import { SITE } from '../data/site';
+import { DPI_PRESETS } from '../lib/pdf/strong-compress';
 
 const tool = getTool('compress-pdf');
+const TARGETS_KB = [50, 100, 200, 300, 500, 1024, 2048];
+const label = (kb: number) => (kb >= 1024 ? `${kb / 1024} MB` : `${kb} KB`);
 ---
 
 <ToolLayout
@@ -14,6 +19,235 @@ const tool = getTool('compress-pdf');
   h1={`${tool.name} Online Free`}
   intro={tool.description}
 >
-  <ComingSoon tool={tool} />
+  <FileDrop id="cp-drop" accept="application/pdf,.pdf" acceptLabel="PDF files" maxSizeMB={200} />
+
+  <form class="panel opts" id="cp-form" novalidate>
+    <fieldset class="modes">
+      <legend class="label">Compression mode</legend>
+      <label class="mode-card">
+        <input type="radio" name="mode" value="basic" checked />
+        <span>
+          <strong>Basic (keeps text selectable)</strong>
+          <span class="muted">Re-saves the PDF more efficiently. Safe for any document, but savings are often small.</span>
+        </span>
+      </label>
+      <label class="mode-card">
+        <input type="radio" name="mode" value="strong" />
+        <span>
+          <strong>Strong (for scanned documents)</strong>
+          <span class="muted">Turns each page into a compressed image. Much smaller for scans and photos.</span>
+        </span>
+      </label>
+    </fieldset>
+
+    <div id="cp-strong" hidden>
+      <p class="warn-text" role="note">Text will no longer be selectable or searchable.</p>
+      <div class="form-grid">
+        <div class="field">
+          <label for="cp-dpi">Image quality preset</label>
+          <select id="cp-dpi">
+            {DPI_PRESETS.map((p) => <option value={p.dpi} selected={p.id === 'medium'}>{p.label}</option>)}
+          </select>
+        </div>
+        <div class="field">
+          <label for="cp-target">Target size</label>
+          <select id="cp-target">
+            <option value="">No target (use quality below)</option>
+            {TARGETS_KB.map((kb) => <option value={kb}>{label(kb)}</option>)}
+            <option value="custom">Custom…</option>
+          </select>
+        </div>
+        <div class="field" id="cp-custom" hidden>
+          <label for="cp-custom-kb">Custom target (KB)</label>
+          <input type="text" inputmode="numeric" id="cp-custom-kb" placeholder="e.g. 250" autocomplete="off" />
+        </div>
+        <div class="field" id="cp-quality-wrap">
+          <label for="cp-quality">JPEG quality: <output id="cp-quality-out" for="cp-quality">70</output></label>
+          <input type="range" id="cp-quality" min="10" max="95" value="70" />
+        </div>
+      </div>
+      <p class="hint muted">With a target, we try lower quality and then lower DPI until the file fits, and tell you the real size.</p>
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="btn" id="cp-go">Compress PDF</button>
+    </div>
+  </form>
+
+  <Progress id="cp-progress" />
+  <div class="error-box" id="cp-errors" role="alert" hidden></div>
+  <ResultBox id="cp-result" heading="Your compressed PDF" />
+
   <!-- TODO (Prompt 8): long content goes in slot="content" -->
 </ToolLayout>
+
+<script>
+  import { fileDropFor } from '../lib/file-drop';
+  import { resultBoxFor } from '../lib/result-box';
+  import { progressFor } from '../lib/progress';
+  import { pdfInfo } from '../lib/pdf/file-info';
+  import { strongCompress } from '../lib/pdf/strong-compress';
+  import { largeFileWarning, opErrorMessage, pdfBlob, pdfOp } from '../lib/pdf/run';
+  import { pdfErrorMessage } from '../lib/pdf/errors';
+  import { formatBytes } from '../lib/format';
+  import { readParams } from '../lib/url-state';
+
+  const $ = <T extends HTMLElement = HTMLInputElement>(id: string) => document.getElementById(id) as T;
+  const dropEl = $<HTMLElement>('cp-drop');
+  const drop = fileDropFor(dropEl)!;
+  const form = $<HTMLFormElement>('cp-form');
+  const result = resultBoxFor($<HTMLElement>('cp-result'))!;
+  const progress = progressFor($<HTMLElement>('cp-progress'))!;
+  const errorsEl = $<HTMLElement>('cp-errors');
+  const targetSel = $<HTMLSelectElement>('cp-target');
+
+  const mode = () => form.querySelector<HTMLInputElement>('input[name="mode"]:checked')!.value as 'basic' | 'strong';
+  const baseName = (n: string) => n.replace(/\.pdf$/i, '');
+
+  function showErrors(list: string[]) {
+    errorsEl.replaceChildren(...list.map((t) => Object.assign(document.createElement('p'), { textContent: t })));
+    errorsEl.hidden = list.length === 0;
+  }
+
+  function targetBytes(): number | null | undefined {
+    if (targetSel.value === '') return undefined;
+    if (targetSel.value !== 'custom') return Number(targetSel.value) * 1024;
+    const kb = Number($('cp-custom-kb').value.trim());
+    return kb >= 1 ? Math.round(kb * 1024) : null;
+  }
+
+  function sync() {
+    $<HTMLElement>('cp-strong').hidden = mode() !== 'strong';
+    $<HTMLElement>('cp-custom').hidden = targetSel.value !== 'custom';
+    $<HTMLElement>('cp-quality-wrap').hidden = targetSel.value !== '';
+    $<HTMLOutputElement>('cp-quality-out').value = $('cp-quality').value;
+  }
+  form.addEventListener('input', sync);
+  form.addEventListener('change', sync);
+
+  dropEl.addEventListener('files-changed', async (e) => {
+    result.clear();
+    const f = (e as CustomEvent<File[]>).detail[0];
+    if (!f) return showErrors([]);
+    const info = await pdfInfo(f);
+    if (!info.ok) return showErrors([info.error]);
+    showErrors([largeFileWarning(f, info.pages)].filter((x): x is string => !!x));
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const file = drop.files[0];
+    if (!file) return showErrors(['Add a PDF file first, using "Choose file" or drag and drop.']);
+    const info = await pdfInfo(file);
+    if (!info.ok) return showErrors([info.error]);
+    const target = mode() === 'strong' ? targetBytes() : undefined;
+    if (target === null) return showErrors(['Enter a custom target size in KB, for example 250.']);
+
+    showErrors([]);
+    result.clear();
+    drop.setBusy(true);
+    $<HTMLButtonElement>('cp-go').disabled = true;
+    try {
+      if (mode() === 'basic') {
+        const out = await pdfOp({ op: 'basic-compress', name: file.name, bytes: await file.arrayBuffer() }, (d, t, l) =>
+          progress.set(d, t, l),
+        );
+        const already = out.note === 'already-optimized';
+        result.show([
+          {
+            name: `${baseName(file.name)}-compressed.pdf`,
+            blob: pdfBlob(out.bytes),
+            originalSize: file.size,
+            note: already
+              ? 'This PDF is already well optimized, so Basic mode could not make it smaller. For scanned pages, try Strong mode.'
+              : `Text stays selectable.${out.note === 'rebuilt' ? ' Bookmarks and form fields may not be kept.' : ''}`,
+            warn: already,
+          },
+        ]);
+      } else {
+        const r = await strongCompress(
+          file,
+          { dpi: Number($<HTMLSelectElement>('cp-dpi').value), quality: Number($('cp-quality').value) / 100, targetBytes: target },
+          (d, t, l) => progress.set(d, t, l),
+        );
+        const notes = [`${r.dpi} DPI, JPEG quality ${Math.round(r.quality * 100)}`];
+        let warn = false;
+        if (target && !r.reachedTarget) {
+          notes.push(`Could not get below ${formatBytes(target)}. This is the smallest version we could make.`);
+          warn = true;
+        }
+        if (r.bytes.length >= file.size) {
+          notes.push('The result is not smaller than the original. This PDF is probably mostly text: use Basic mode instead.');
+          warn = true;
+        }
+        result.show([{ name: `${baseName(file.name)}-compressed.pdf`, blob: pdfBlob(r.bytes), originalSize: file.size, note: notes.join(' · '), warn }]);
+      }
+    } catch (err) {
+      showErrors([mode() === 'basic' ? opErrorMessage(err, file.name) : pdfErrorMessage(err, file.name)]);
+    } finally {
+      progress.hide();
+      drop.setBusy(false);
+      $<HTMLButtonElement>('cp-go').disabled = false;
+    }
+  });
+
+  $<HTMLElement>('cp-result').addEventListener('start-over', () => {
+    drop.clear();
+    showErrors([]);
+  });
+
+  // Deep links: /compress-pdf?target=200kb selects Strong mode with that target.
+  const t = readParams().get('target')?.toLowerCase().match(/^(\d+(?:\.\d+)?)(kb|mb)$/);
+  if (t) {
+    const kb = Number(t[1]) * (t[2] === 'mb' ? 1024 : 1);
+    form.querySelector<HTMLInputElement>('input[value="strong"]')!.checked = true;
+    const option = [...targetSel.options].find((o) => Number(o.value) === kb);
+    if (option) targetSel.value = option.value;
+    else {
+      targetSel.value = 'custom';
+      $('cp-custom-kb').value = String(kb);
+    }
+  }
+  sync();
+</script>
+
+<style>
+  .label {
+    font-weight: 600;
+    font-size: var(--text-sm);
+    padding: 0;
+    margin-bottom: var(--space-2);
+  }
+  .modes {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: var(--space-2);
+  }
+  .mode-card {
+    display: flex;
+    gap: var(--space-3);
+    align-items: flex-start;
+    padding: var(--space-3);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    cursor: pointer;
+  }
+  .mode-card:has(input:checked) {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .mode-card input {
+    margin-top: 3px;
+    flex: none;
+  }
+  .mode-card > span {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+  .mode-card .muted {
+    font-size: var(--text-sm);
+  }
+</style>

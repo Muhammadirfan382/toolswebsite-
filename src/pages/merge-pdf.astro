@@ -1,6 +1,8 @@
 ---
 import ToolLayout from '../layouts/ToolLayout.astro';
-import ComingSoon from '../components/ComingSoon.astro';
+import FileDrop from '../components/FileDrop.astro';
+import Progress from '../components/Progress.astro';
+import ResultBox from '../components/ResultBox.astro';
 import { getTool } from '../data/tools';
 import { SITE } from '../data/site';
 
@@ -14,6 +16,183 @@ const tool = getTool('merge-pdf');
   h1={`${tool.name} Online Free`}
   intro={tool.description}
 >
-  <ComingSoon tool={tool} />
+  <FileDrop
+    id="mp-drop"
+    accept="application/pdf,.pdf"
+    acceptLabel="PDF files"
+    multiple
+    maxSizeMB={200}
+    hint="Drop PDF files here or use the button. Drag rows or use the arrows to change the order."
+  />
+  <p class="muted small">Leave "Pages" empty to include the whole file, or type ranges like 1-3, 5.</p>
+
+  <form class="panel opts" id="mp-form" novalidate>
+    <div class="actions">
+      <button type="submit" class="btn" id="mp-go">Merge PDFs</button>
+    </div>
+  </form>
+
+  <Progress id="mp-progress" />
+  <div class="error-box" id="mp-errors" role="alert" hidden></div>
+  <ResultBox id="mp-result" heading="Your merged PDF is ready" />
+
   <!-- TODO (Prompt 8): long content goes in slot="content" -->
 </ToolLayout>
+
+<script>
+  import { fileDropFor } from '../lib/file-drop';
+  import { resultBoxFor } from '../lib/result-box';
+  import { progressFor } from '../lib/progress';
+  import { pdfInfo } from '../lib/pdf/file-info';
+  import { parsePageRange } from '../lib/pdf/ranges';
+  import { largeFileWarning, opErrorMessage, pdfBlob, pdfOp } from '../lib/pdf/run';
+
+  const dropEl = document.getElementById('mp-drop')!;
+  const drop = fileDropFor(dropEl)!;
+  const result = resultBoxFor(document.getElementById('mp-result')!)!;
+  const progress = progressFor(document.getElementById('mp-progress')!)!;
+  const errorsEl = document.getElementById('mp-errors')!;
+  const go = document.getElementById('mp-go') as HTMLButtonElement;
+  const ranges = new WeakMap<File, string>();
+  let rowSeq = 0;
+
+  function showErrors(list: string[]) {
+    errorsEl.replaceChildren(...list.map((t) => Object.assign(document.createElement('p'), { textContent: t })));
+    errorsEl.hidden = list.length === 0;
+  }
+
+  /** Add a thumbnail and a "Pages" box to each file row. */
+  function decorate(rows: { file: File; li: HTMLLIElement }[]) {
+    for (const { file, li } of rows) {
+      const thumb = document.createElement('img');
+      thumb.className = 'pdf-thumb';
+      thumb.alt = '';
+      thumb.width = 48;
+      thumb.height = 64;
+      const handle = li.querySelector('.fd-handle');
+      if (handle) handle.after(thumb);
+      else li.prepend(thumb);
+
+      const id = `mp-range-${++rowSeq}`;
+      const wrap = document.createElement('span');
+      wrap.className = 'range-field';
+      const label = document.createElement('label');
+      label.htmlFor = id;
+      label.textContent = 'Pages';
+      const input = document.createElement('input');
+      input.id = id;
+      input.type = 'text';
+      input.inputMode = 'numeric';
+      input.placeholder = 'All';
+      input.autocomplete = 'off';
+      input.value = ranges.get(file) ?? '';
+      input.setAttribute('aria-label', `Pages to include from ${file.name}`);
+      input.addEventListener('input', () => ranges.set(file, input.value));
+      // Typing in the box must not start a row drag.
+      input.addEventListener('pointerdown', () => (li.draggable = false));
+      input.addEventListener('blur', () => (li.draggable = drop.files.length > 1));
+      wrap.append(label, input);
+      li.querySelector('.fd-info')!.append(wrap);
+
+      void pdfInfo(file).then((info) => {
+        const size = li.querySelector('.fd-size');
+        if (info.ok) {
+          thumb.src = info.thumb;
+          if (size) size.textContent += ` · ${info.pages} ${info.pages === 1 ? 'page' : 'pages'}`;
+        } else {
+          thumb.remove();
+          li.classList.add('has-error');
+          if (size) size.textContent = info.error;
+        }
+      });
+    }
+  }
+
+  dropEl.addEventListener('fd-rendered', (e) => decorate((e as CustomEvent<{ file: File; li: HTMLLIElement }[]>).detail));
+  dropEl.addEventListener('files-changed', async (e) => {
+    result.clear();
+    const files = (e as CustomEvent<File[]>).detail;
+    const warnings: string[] = [];
+    for (const f of files) {
+      const info = await pdfInfo(f);
+      const w = largeFileWarning(f, info.ok ? info.pages : undefined);
+      if (w) warnings.push(w);
+    }
+    showErrors(warnings);
+  });
+
+  document.getElementById('mp-form')!.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const files = drop.files;
+    if (files.length === 0) return showErrors(['Add at least two PDF files first, using "Choose files" or drag and drop.']);
+    if (files.length === 1) return showErrors(['Add at least one more PDF to merge with this one.']);
+
+    const problems: string[] = [];
+    const jobs: { name: string; bytes: ArrayBuffer; pages: number[] }[] = [];
+    for (const file of files) {
+      const info = await pdfInfo(file);
+      if (!info.ok) {
+        problems.push(info.error);
+        continue;
+      }
+      const r = parsePageRange(ranges.get(file) ?? '', info.pages);
+      if (!r.ok) problems.push(`${file.name}: ${r.error}`);
+      else jobs.push({ name: file.name, bytes: await file.arrayBuffer(), pages: r.pages });
+    }
+    if (problems.length) return showErrors(problems);
+
+    showErrors([]);
+    result.clear();
+    drop.setBusy(true);
+    go.disabled = true;
+    try {
+      const out = await pdfOp({ op: 'merge', files: jobs }, (d, t, l) => progress.set(d, t, l));
+      const totalPages = jobs.reduce((s, j) => s + j.pages.length, 0);
+      result.show(
+        [{ name: 'merged.pdf', blob: pdfBlob(out.bytes), note: `${totalPages} pages from ${jobs.length} files` }],
+      );
+    } catch (err) {
+      showErrors([opErrorMessage(err, files[0]!.name)]);
+    } finally {
+      progress.hide();
+      drop.setBusy(false);
+      go.disabled = false;
+    }
+  });
+
+  document.getElementById('mp-result')!.addEventListener('start-over', () => {
+    drop.clear();
+    showErrors([]);
+  });
+</script>
+
+<style>
+  .small {
+    font-size: var(--text-sm);
+    margin: var(--space-2) 0 0;
+  }
+  :global(.pdf-thumb) {
+    flex: none;
+    width: 48px;
+    height: 64px;
+    object-fit: contain;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+  }
+  :global(.range-field) {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: var(--space-1);
+    font-size: var(--text-sm);
+  }
+  :global(.range-field input) {
+    width: 8rem;
+    min-height: var(--tap);
+    padding: var(--space-1) var(--space-2);
+  }
+  :global(.fd-item.has-error .fd-size) {
+    color: var(--danger);
+    font-weight: 600;
+  }
+</style>

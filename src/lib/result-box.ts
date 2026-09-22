@@ -53,10 +53,25 @@ export function initResultBox(root: HTMLElement): ResultBoxController {
       ? `${formatBytes(item.originalSize)} → ${formatBytes(item.blob.size)} (${describeSizeChange(item.originalSize, item.blob.size)})`
       : formatBytes(item.blob.size);
 
+  const thumbs = root.dataset.thumbs === 'true';
+  let thumbUrls: string[] = [];
+
   const render = (summary?: string) => {
+    thumbUrls.forEach((u) => URL.revokeObjectURL(u));
+    thumbUrls = [];
     list.replaceChildren();
+    list.classList.toggle('rb-thumbs', thumbs);
     items.forEach((item, i) => {
       const li = el('li', 'rb-item');
+      if (thumbs && item.blob.type.startsWith('image/')) {
+        const url = URL.createObjectURL(item.blob);
+        thumbUrls.push(url);
+        const img = el('img', 'rb-thumb');
+        img.src = url;
+        img.alt = `Preview of ${item.name}`;
+        img.loading = 'lazy';
+        li.append(img);
+      }
       const info = el('div', 'rb-info');
       info.append(el('span', 'rb-name', item.name), el('span', 'rb-size', sizeLine(item)));
       if (item.note) info.append(el('span', item.warn ? 'rb-note rb-warn' : 'rb-note', item.note));

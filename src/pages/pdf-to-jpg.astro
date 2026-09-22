@@ -1,6 +1,8 @@
 ---
 import ToolLayout from '../layouts/ToolLayout.astro';
-import ComingSoon from '../components/ComingSoon.astro';
+import FileDrop from '../components/FileDrop.astro';
+import Progress from '../components/Progress.astro';
+import ResultBox from '../components/ResultBox.astro';
 import { getTool } from '../data/tools';
 import { SITE } from '../data/site';
 
@@ -14,6 +16,130 @@ const tool = getTool('pdf-to-jpg');
   h1={`${tool.name} Online Free`}
   intro={tool.description}
 >
-  <ComingSoon tool={tool} />
+  <FileDrop id="pj-drop" accept="application/pdf,.pdf" acceptLabel="PDF files" maxSizeMB={200} />
+  <p class="muted small" id="pj-info" aria-live="polite"></p>
+
+  <form class="panel opts" id="pj-form" novalidate>
+    <div class="form-grid">
+      <div class="field">
+        <label for="pj-pages">Pages</label>
+        <input type="text" id="pj-pages" inputmode="numeric" placeholder="All pages" autocomplete="off" aria-describedby="pj-pages-hint" />
+        <span class="hint" id="pj-pages-hint">Leave empty for all pages, or type ranges like 1-3, 5.</span>
+      </div>
+      <div class="field">
+        <label for="pj-dpi">Resolution</label>
+        <select id="pj-dpi">
+          <option value="72">72 DPI (screen, smallest files)</option>
+          <option value="150" selected>150 DPI (good for most uses)</option>
+          <option value="300">300 DPI (print quality, large files)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="pj-quality">JPG quality: <output id="pj-quality-out" for="pj-quality">85</output></label>
+        <input type="range" id="pj-quality" min="10" max="100" value="85" />
+      </div>
+    </div>
+    <div class="actions">
+      <button type="submit" class="btn" id="pj-go">Convert to JPG</button>
+    </div>
+  </form>
+
+  <Progress id="pj-progress" />
+  <div class="error-box" id="pj-errors" role="alert" hidden></div>
+  <ResultBox id="pj-result" zipName="pdf-pages-jpg.zip" heading="Your pages as JPG" thumbnails />
+
   <!-- TODO (Prompt 8): long content goes in slot="content" -->
 </ToolLayout>
+
+<script>
+  import { fileDropFor } from '../lib/file-drop';
+  import { resultBoxFor } from '../lib/result-box';
+  import { progressFor } from '../lib/progress';
+  import { pdfInfo } from '../lib/pdf/file-info';
+  import { parsePageRange } from '../lib/pdf/ranges';
+  import { canvasToJpeg, openPdf, releaseCanvas, renderPage } from '../lib/pdf/pdfjs';
+  import { pdfErrorMessage } from '../lib/pdf/errors';
+  import { largeFileWarning } from '../lib/pdf/run';
+  import type { ResultItem } from '../lib/result-box';
+
+  const $ = <T extends HTMLElement = HTMLInputElement>(id: string) => document.getElementById(id) as T;
+  const dropEl = $<HTMLElement>('pj-drop');
+  const drop = fileDropFor(dropEl)!;
+  const form = $<HTMLFormElement>('pj-form');
+  const result = resultBoxFor($<HTMLElement>('pj-result'))!;
+  const progress = progressFor($<HTMLElement>('pj-progress'))!;
+  const errorsEl = $<HTMLElement>('pj-errors');
+
+  function showErrors(list: string[]) {
+    errorsEl.replaceChildren(...list.map((t) => Object.assign(document.createElement('p'), { textContent: t })));
+    errorsEl.hidden = list.length === 0;
+  }
+
+  form.addEventListener('input', () => ($<HTMLOutputElement>('pj-quality-out').value = $('pj-quality').value));
+
+  dropEl.addEventListener('files-changed', async (e) => {
+    result.clear();
+    $<HTMLElement>('pj-info').textContent = '';
+    const f = (e as CustomEvent<File[]>).detail[0];
+    if (!f) return showErrors([]);
+    const info = await pdfInfo(f);
+    if (!info.ok) return showErrors([info.error]);
+    $<HTMLElement>('pj-info').textContent = `${f.name} has ${info.pages} ${info.pages === 1 ? 'page' : 'pages'}.`;
+    showErrors([largeFileWarning(f, info.pages)].filter((x): x is string => !!x));
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const file = drop.files[0];
+    if (!file) return showErrors(['Add a PDF file first, using "Choose file" or drag and drop.']);
+    const info = await pdfInfo(file);
+    if (!info.ok) return showErrors([info.error]);
+    const range = parsePageRange($('pj-pages').value, info.pages);
+    if (!range.ok) return showErrors([range.error]);
+
+    showErrors([]);
+    result.clear();
+    drop.setBusy(true);
+    $<HTMLButtonElement>('pj-go').disabled = true;
+    const dpi = Number($<HTMLSelectElement>('pj-dpi').value);
+    const quality = Number($('pj-quality').value) / 100;
+    const base = file.name.replace(/\.pdf$/i, '');
+    const items: ResultItem[] = [];
+    try {
+      const doc = await openPdf(await file.arrayBuffer());
+      try {
+        // One page at a time: render, encode, release the canvas.
+        for (const [i, index] of range.pages.entries()) {
+          progress.set(i, range.pages.length, `Page ${index + 1} (${i + 1} of ${range.pages.length})`);
+          const { canvas } = await renderPage(doc, index + 1, dpi / 72);
+          const blob = await canvasToJpeg(canvas, quality);
+          const note = `${canvas.width} × ${canvas.height} px`;
+          releaseCanvas(canvas);
+          items.push({ name: `${base}-page-${String(index + 1).padStart(String(info.pages).length, '0')}.jpg`, blob, note });
+        }
+      } finally {
+        await doc.loadingTask.destroy();
+      }
+      result.show(items);
+    } catch (err) {
+      showErrors([pdfErrorMessage(err, file.name)]);
+      if (items.length) result.show(items);
+    } finally {
+      progress.hide();
+      drop.setBusy(false);
+      $<HTMLButtonElement>('pj-go').disabled = false;
+    }
+  });
+
+  $<HTMLElement>('pj-result').addEventListener('start-over', () => {
+    drop.clear();
+    showErrors([]);
+  });
+</script>
+
+<style>
+  .small {
+    font-size: var(--text-sm);
+    margin: var(--space-2) 0 0;
+  }
+</style>

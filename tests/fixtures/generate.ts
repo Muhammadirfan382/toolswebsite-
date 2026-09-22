@@ -5,6 +5,7 @@
 import { chromium, type FullConfig } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { generatePdfs } from './pdf-fixtures';
 
 export const FIXTURES = fileURLToPath(new URL('./generated/', import.meta.url));
 
@@ -62,6 +63,7 @@ export default async function generate(config: FullConfig): Promise<void> {
   await writeFile(`${FIXTURES}corrupt.jpg`, new TextEncoder().encode('this is not really a jpeg'));
   await writeFile(`${FIXTURES}photo.heic`, new Uint8Array([0, 0, 0, 24, 102, 116, 121, 112]));
   await writeFile(`${FIXTURES}notes.txt`, 'Hello world. This is a test file for the word counter.');
+  await generatePdfs(FIXTURES, u8(images.split), u8(images.photo));
 }
 
 /** Insert an EXIF APP1 segment with the given Orientation tag right after SOI. */

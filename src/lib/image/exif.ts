@@ -76,3 +76,37 @@ export async function setJpegDpi(jpeg: Blob, dpi: number): Promise<Blob> {
   bytes[17] = d & 255;
   return new Blob([bytes], { type: 'image/jpeg' });
 }
+
+/** EXIF Orientation of a JPEG (1–8), or 1 when absent or unreadable. */
+export function jpegOrientation(bytes: Uint8Array): number {
+  const seg = extractExifRaw(bytes);
+  if (!seg) return 1;
+  const tiff = 10;
+  const little = seg[tiff] === 0x49;
+  const view = new DataView(seg.buffer, seg.byteOffset, seg.byteLength);
+  try {
+    const ifd0 = tiff + view.getUint32(tiff + 4, little);
+    const count = view.getUint16(ifd0, little);
+    for (let k = 0; k < count; k++) {
+      const entry = ifd0 + 2 + k * 12;
+      if (view.getUint16(entry, little) === 0x0112) return view.getUint16(entry + 8, little) || 1;
+    }
+  } catch {
+    /* malformed */
+  }
+  return 1;
+}
+
+/** The EXIF APP1 segment as-is (no changes), or null. */
+function extractExifRaw(bytes: Uint8Array): Uint8Array | null {
+  if (!isJpeg(bytes)) return null;
+  let i = 2;
+  while (i + 10 <= bytes.length && bytes[i] === 0xff) {
+    const marker = bytes[i + 1]!;
+    if (marker === 0xda || marker === 0xd9) return null;
+    const len = (bytes[i + 2]! << 8) | bytes[i + 3]!;
+    if (marker === 0xe1 && bytes[i + 4] === 0x45 && bytes[i + 5] === 0x78) return bytes.subarray(i, i + 2 + len);
+    i += 2 + len;
+  }
+  return null;
+}

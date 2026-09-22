@@ -127,6 +127,13 @@ export function initFileDrop(root: HTMLElement): FileDropController {
       list.append(li);
     });
 
+    // Let pages decorate rows (e.g. PDF thumbnails, page ranges). detail: { file, li }[]
+    root.dispatchEvent(
+      new CustomEvent('fd-rendered', {
+        detail: files.map((file, i) => ({ file, li: list.children[i] as HTMLLIElement })),
+      }),
+    );
+
     if (focus) {
       if (focus.action === 'remove') {
         const target =

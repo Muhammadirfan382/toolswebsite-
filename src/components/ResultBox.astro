@@ -5,12 +5,14 @@ interface Props {
   /** File name for "Download all as ZIP". */
   zipName?: string;
   heading?: string;
+  /** Show image previews in a grid (PDF to JPG). */
+  thumbnails?: boolean;
 }
 
-const { id = 'result-box', zipName = 'files.zip', heading = 'Your files are ready' } = Astro.props;
+const { id = 'result-box', zipName = 'files.zip', heading = 'Your files are ready', thumbnails = false } = Astro.props;
 ---
 
-<section class="result-box" id={id} data-result-box data-zip-name={zipName} hidden aria-labelledby={`${id}-h`}>
+<section class="result-box" id={id} data-result-box data-zip-name={zipName} data-thumbs={String(thumbnails)} hidden aria-labelledby={`${id}-h`}>
   <h2 id={`${id}-h`} class="rb-heading" tabindex="-1" data-rb-heading>{heading}</h2>
   <p class="rb-summary" data-rb-summary hidden></p>
   <ul class="rb-list" data-rb-list></ul>
@@ -81,6 +83,22 @@ const { id = 'result-box', zipName = 'files.zip', heading = 'Your files are read
   .rb-list :global(.rb-warn) {
     color: var(--warning);
     font-weight: 600;
+  }
+  .rb-list:global(.rb-thumbs) {
+    grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  }
+  .rb-list:global(.rb-thumbs) :global(.rb-item) {
+    flex-direction: column;
+    align-items: stretch;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: var(--space-2);
+  }
+  .rb-list :global(.rb-thumb) {
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    object-fit: contain;
+    background: var(--surface-2);
   }
   .rb-actions {
     display: flex;

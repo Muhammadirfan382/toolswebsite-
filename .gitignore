@@ -8,3 +8,4 @@ dist/
 tests/fixtures/generated/
 test-results/
 playwright-report/
+public/pdfjs/
