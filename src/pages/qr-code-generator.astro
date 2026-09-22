@@ -1,7 +1,6 @@
 ---
 import ToolLayout from '../layouts/ToolLayout.astro';
 import { getTool } from '../data/tools';
-import { SITE } from '../data/site';
 import { QR_PRINT_GUIDE } from '../data/presets';
 
 const tool = getTool('qr-code-generator');
@@ -87,14 +86,7 @@ const types: T[] = [
 ];
 ---
 
-<ToolLayout
-  tool={tool}
-  title={`${tool.name} Online Free | ${SITE.brand}`}
-  description={`${tool.description} Free, no sign-up, and it runs in your browser.`}
-  h1={`${tool.name} Online Free`}
-  intro={tool.description}
-  privacySubject="your data"
->
+<ToolLayout tool={tool} privacySubject="your data">
   <div class="qr-layout">
     <div class="qr-inputs">
       <div data-tabs id="qr-tabs">
@@ -223,7 +215,6 @@ const types: T[] = [
 
   <script type="application/json" id="qr-cfg" set:html={JSON.stringify({ minContrast: QR_PRINT_GUIDE.minContrast })} />
 
-  <!-- TODO (Prompt 8): long content goes in slot="content" -->
 </ToolLayout>
 
 <script>

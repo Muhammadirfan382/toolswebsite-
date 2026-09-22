@@ -1,7 +1,6 @@
 ---
 import ToolLayout from '../layouts/ToolLayout.astro';
 import { getTool } from '../data/tools';
-import { SITE } from '../data/site';
 
 const tool = getTool('percentage-calculator');
 
@@ -26,14 +25,7 @@ const modes: Mode[] = [
 ];
 ---
 
-<ToolLayout
-  tool={tool}
-  title={`${tool.name} Online Free | ${SITE.brand}`}
-  description={`${tool.description} Free, no sign-up, and it runs in your browser.`}
-  h1={`${tool.name} Online Free`}
-  intro={tool.description}
-  privacySubject="numbers"
->
+<ToolLayout tool={tool} privacySubject="numbers">
   <div data-tabs id="pct-tabs">
     <div role="tablist" class="tablist" aria-label="Percentage calculations" hidden>
       {
@@ -81,7 +73,6 @@ const modes: Mode[] = [
   </div>
   <p class="visually-hidden" aria-live="polite" id="pct-copy-status"></p>
 
-  <!-- TODO (Prompt 8): long content goes in slot="content" -->
 </ToolLayout>
 
 <script>

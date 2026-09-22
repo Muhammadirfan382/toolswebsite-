@@ -1,20 +1,12 @@
 ---
 import ToolLayout from '../layouts/ToolLayout.astro';
 import { getTool } from '../data/tools';
-import { SITE } from '../data/site';
 import { GRADE_SCALES } from '../data/presets';
 
 const tool = getTool('gpa-calculator');
 ---
 
-<ToolLayout
-  tool={tool}
-  title={`${tool.name} Online Free | ${SITE.brand}`}
-  description={`${tool.description} Free, no sign-up, and it runs in your browser.`}
-  h1={`${tool.name} Online Free`}
-  intro={tool.description}
-  privacySubject="grades"
->
+<ToolLayout tool={tool} privacySubject="grades">
   <form class="panel" id="gpa-form" novalidate>
     <div class="field scale-field">
       <label for="gpa-scale">Grading scale</label>
@@ -65,7 +57,6 @@ const tool = getTool('gpa-calculator');
 
   <script type="application/json" id="gpa-scales" set:html={JSON.stringify(GRADE_SCALES.map((s) => ({ id: s.id, grades: s.grades })))} />
 
-  <!-- TODO (Prompt 8): long content goes in slot="content" -->
 </ToolLayout>
 
 <script>

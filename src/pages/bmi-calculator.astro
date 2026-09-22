@@ -1,7 +1,6 @@
 ---
 import ToolLayout from '../layouts/ToolLayout.astro';
 import { getTool } from '../data/tools';
-import { SITE } from '../data/site';
 import { BMI_CATEGORIES } from '../data/presets';
 
 const tool = getTool('bmi-calculator');
@@ -11,14 +10,7 @@ const SCALE_MAX = 40;
 const pct = (v: number) => ((Math.min(Math.max(v, SCALE_MIN), SCALE_MAX) - SCALE_MIN) / (SCALE_MAX - SCALE_MIN)) * 100;
 ---
 
-<ToolLayout
-  tool={tool}
-  title={`${tool.name} Online Free | ${SITE.brand}`}
-  description={`${tool.description} Free, no sign-up, and it runs in your browser.`}
-  h1={`${tool.name} Online Free`}
-  intro={tool.description}
-  privacySubject="measurements"
->
+<ToolLayout tool={tool} privacySubject="measurements">
   <form class="panel" id="bmi-form" novalidate>
     <fieldset class="segmented">
       <legend class="visually-hidden">Units</legend>
@@ -96,7 +88,6 @@ const pct = (v: number) => ((Math.min(Math.max(v, SCALE_MIN), SCALE_MAX) - SCALE
 
   <script type="application/json" id="bmi-scale-cfg" set:html={JSON.stringify({ min: SCALE_MIN, max: SCALE_MAX, normal: BMI_CATEGORIES.find((c) => c.id === 'normal') })} />
 
-  <!-- TODO (Prompt 8): long content goes in slot="content" -->
 </ToolLayout>
 
 <script>

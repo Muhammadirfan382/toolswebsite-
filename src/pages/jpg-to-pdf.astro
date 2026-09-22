@@ -4,18 +4,11 @@ import FileDrop from '../components/FileDrop.astro';
 import Progress from '../components/Progress.astro';
 import ResultBox from '../components/ResultBox.astro';
 import { getTool } from '../data/tools';
-import { SITE } from '../data/site';
 
 const tool = getTool('jpg-to-pdf');
 ---
 
-<ToolLayout
-  tool={tool}
-  title={`${tool.name} Online Free | ${SITE.brand}`}
-  description={`${tool.description} Free, no sign-up, and it runs in your browser.`}
-  h1={`${tool.name} Online Free`}
-  intro={tool.description}
->
+<ToolLayout tool={tool}>
   <FileDrop
     id="jp-drop"
     accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
@@ -69,7 +62,6 @@ const tool = getTool('jpg-to-pdf');
   <div class="error-box" id="jp-errors" role="alert" hidden></div>
   <ResultBox id="jp-result" heading="Your PDF is ready" />
 
-  <!-- TODO (Prompt 8): long content goes in slot="content" -->
 </ToolLayout>
 
 <script>

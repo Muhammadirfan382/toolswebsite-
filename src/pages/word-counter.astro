@@ -1,20 +1,12 @@
 ---
 import ToolLayout from '../layouts/ToolLayout.astro';
 import { getTool } from '../data/tools';
-import { SITE } from '../data/site';
 import { READING_WPM, SPEAKING_WPM } from '../data/limits';
 
 const tool = getTool('word-counter');
 ---
 
-<ToolLayout
-  tool={tool}
-  title={`${tool.name} Online Free | ${SITE.brand}`}
-  description={`${tool.description} Free, no sign-up, and it runs in your browser.`}
-  h1={`${tool.name} Online Free`}
-  intro={tool.description}
-  privacySubject="your text"
->
+<ToolLayout tool={tool} privacySubject="your text">
   <div class="wc">
     <div class="field">
       <label for="wc-text">Type or paste your text</label>
@@ -75,7 +67,6 @@ const tool = getTool('word-counter');
     </div>
   </section>
 
-  <!-- TODO (Prompt 8): long content goes in slot="content" -->
 </ToolLayout>
 
 <script>

@@ -4,7 +4,6 @@ import FileDrop from '../components/FileDrop.astro';
 import Progress from '../components/Progress.astro';
 import ResultBox from '../components/ResultBox.astro';
 import { getTool } from '../data/tools';
-import { SITE } from '../data/site';
 import { IMAGE_PRESETS, presetIsComplete, presetPixels } from '../data/presets';
 
 const tool = getTool('resize-image');
@@ -16,13 +15,7 @@ const groups = [
 ] as const;
 ---
 
-<ToolLayout
-  tool={tool}
-  title={`${tool.name} Online Free | ${SITE.brand}`}
-  description={`${tool.description} Free, no sign-up, and it runs in your browser.`}
-  h1={`${tool.name} Online Free`}
-  intro={tool.description}
->
+<ToolLayout tool={tool}>
   <FileDrop id="ri-drop" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" acceptLabel="JPG, PNG or WebP images" multiple maxSizeMB={50} />
   <p class="muted small" id="ri-first-size" aria-live="polite"></p>
 
@@ -161,7 +154,6 @@ const groups = [
   <div class="error-box" id="ri-errors" role="alert" hidden></div>
   <ResultBox id="ri-result" zipName="resized-images.zip" heading="Resized images" />
 
-  <!-- TODO (Prompt 8): long content goes in slot="content" -->
 </ToolLayout>
 
 <script>

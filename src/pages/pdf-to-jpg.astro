@@ -4,18 +4,11 @@ import FileDrop from '../components/FileDrop.astro';
 import Progress from '../components/Progress.astro';
 import ResultBox from '../components/ResultBox.astro';
 import { getTool } from '../data/tools';
-import { SITE } from '../data/site';
 
 const tool = getTool('pdf-to-jpg');
 ---
 
-<ToolLayout
-  tool={tool}
-  title={`${tool.name} Online Free | ${SITE.brand}`}
-  description={`${tool.description} Free, no sign-up, and it runs in your browser.`}
-  h1={`${tool.name} Online Free`}
-  intro={tool.description}
->
+<ToolLayout tool={tool}>
   <FileDrop id="pj-drop" accept="application/pdf,.pdf" acceptLabel="PDF files" maxSizeMB={200} />
   <p class="muted small" id="pj-info" aria-live="polite"></p>
 
@@ -48,7 +41,6 @@ const tool = getTool('pdf-to-jpg');
   <div class="error-box" id="pj-errors" role="alert" hidden></div>
   <ResultBox id="pj-result" zipName="pdf-pages-jpg.zip" heading="Your pages as JPG" thumbnails />
 
-  <!-- TODO (Prompt 8): long content goes in slot="content" -->
 </ToolLayout>
 
 <script>

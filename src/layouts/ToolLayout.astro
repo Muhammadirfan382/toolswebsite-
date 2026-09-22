@@ -2,9 +2,12 @@
 /**
  * Shared shell for every tool page.
  * Order: Breadcrumbs → H1 → intro → PrivacyBadge → [tool UI] → AdSlot → HowToSteps →
- *        content slot → FAQ → RelatedTools.
- * JSON-LD: BreadcrumbList, SoftwareApplication, HowTo and FAQPage (when steps/faqs are given).
+ *        content → FAQ → RelatedTools.
+ * Text (title, description, H1, intro, steps, FAQs, article) comes from
+ * src/content/tools/<slug>.md; any prop passed here overrides it.
+ * JSON-LD: BreadcrumbList, SoftwareApplication, HowTo and FAQPage.
  */
+import { getEntry, render } from 'astro:content';
 import BaseLayout from './BaseLayout.astro';
 import Breadcrumbs from '../components/Breadcrumbs.astro';
 import PrivacyBadge from '../components/PrivacyBadge.astro';
@@ -12,32 +15,34 @@ import AdSlot from '../components/AdSlot.astro';
 import HowToSteps from '../components/HowToSteps.astro';
 import FAQ, { type FaqItem } from '../components/FAQ.astro';
 import RelatedTools from '../components/RelatedTools.astro';
+import { SITE } from '../data/site';
 import { getCategory, toolPath, type Tool } from '../data/tools';
 import { breadcrumbList, faqPage, howTo, softwareApplication, toJsonLd } from '../lib/schema';
 
 interface Props {
   tool: Tool;
-  title: string;
-  description: string;
-  h1: string;
-  /** One sentence under the H1. */
-  intro: string;
+  title?: string;
+  description?: string;
+  h1?: string;
+  intro?: string;
   howToSteps?: string[];
   faqs?: FaqItem[];
-  /** Word used in the privacy badge: "files" (default) or "text", "numbers"… */
+  /** Word used in the privacy badge: "files" (default), "your text", "numbers"… */
   privacySubject?: string;
 }
 
-const {
-  tool,
-  title,
-  description,
-  h1,
-  intro,
-  howToSteps = [],
-  faqs = [],
-  privacySubject = 'files',
-} = Astro.props;
+const { tool, privacySubject = 'files' } = Astro.props;
+const entry = await getEntry('tools', tool.slug);
+if (!entry) throw new Error(`Missing content file: src/content/tools/${tool.slug}.md`);
+const { Content } = await render(entry);
+const data = entry.data;
+
+const title = Astro.props.title ?? `${data.title} | ${SITE.brand}`;
+const description = Astro.props.description ?? data.description;
+const h1 = Astro.props.h1 ?? data.h1;
+const intro = Astro.props.intro ?? data.intro;
+const howToSteps = Astro.props.howToSteps ?? data.howToSteps;
+const faqs = Astro.props.faqs ?? data.faqs;
 
 const site = Astro.site!;
 const category = getCategory(tool.category);
@@ -49,11 +54,7 @@ const crumbs = [
 
 const schemas = [
   breadcrumbList(crumbs, site),
-  softwareApplication({
-    name: tool.name,
-    description,
-    url: new URL(toolPath(tool.slug), site).href,
-  }),
+  softwareApplication({ name: tool.name, description, url: new URL(toolPath(tool.slug), site).href }),
   ...(howToSteps.length ? [howTo(`How to use the ${tool.name} tool`, howToSteps)] : []),
   ...(faqs.length ? [faqPage(faqs)] : []),
 ];
@@ -80,7 +81,7 @@ const schemas = [
     <HowToSteps heading={`How to use the ${tool.name} tool`} steps={howToSteps} />
 
     <article class="prose tool-content">
-      <slot name="content" />
+      <Content />
     </article>
 
     <FAQ faqs={faqs} />
@@ -96,7 +97,7 @@ const schemas = [
   .tool-area {
     margin-block: var(--space-3) var(--space-5);
   }
-  .tool-content:empty {
-    display: none;
+  .tool-content :global(h2) {
+    margin-top: var(--space-5);
   }
 </style>

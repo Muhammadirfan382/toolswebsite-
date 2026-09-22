@@ -1,20 +1,12 @@
 ---
 import ToolLayout from '../layouts/ToolLayout.astro';
 import { getTool } from '../data/tools';
-import { SITE } from '../data/site';
 import { CGPA_FORMULA_PRESETS, CGPA_SCALES } from '../data/presets';
 
 const tool = getTool('cgpa-calculator');
 ---
 
-<ToolLayout
-  tool={tool}
-  title={`${tool.name} Online Free | ${SITE.brand}`}
-  description={`${tool.description} Free, no sign-up, and it runs in your browser.`}
-  h1={`${tool.name} Online Free`}
-  intro={tool.description}
-  privacySubject="grades"
->
+<ToolLayout tool={tool} privacySubject="grades">
   <form class="panel" id="cgpa-form" novalidate>
     <fieldset class="segmented">
       <legend class="label-strong">GPA scale</legend>
@@ -84,7 +76,6 @@ const tool = getTool('cgpa-calculator');
     </li>
   </template>
 
-  <!-- TODO (Prompt 8): long content goes in slot="content" -->
 </ToolLayout>
 
 <script>
