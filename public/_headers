@@ -1,0 +1,29 @@
+# Cloudflare Pages headers. Syntax: a path pattern, then indented "Name: value" lines.
+# Everything the site needs is served from its own origin, so the policy is "self" only.
+#   - 'wasm-unsafe-eval': pdf.js decodes some PDF images with WebAssembly (no JS eval is allowed).
+#   - blob:/data: images and fonts: previews, thumbnails and fonts built from your own files.
+#   - style 'unsafe-inline': a few layout values are set with style attributes (no inline <style>).
+
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' data: blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+  X-Frame-Options: DENY
+  Cross-Origin-Opener-Policy: same-origin
+
+# Phase 4 (Google AdSense): replace the Content-Security-Policy line above with a version that adds
+# the ad domains, and only after the cookie/consent notice is in place. Check Google's current CSP
+# guidance for AdSense before launch; typically it needs additions like:
+#   script-src  ... https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://www.googletagservices.com https://adservice.google.com
+#   img-src     ... https:
+#   frame-src   https://*.googlesyndication.com https://*.doubleclick.net https://www.google.com
+#   connect-src ... https://*.google.com https://*.googlesyndication.com https://*.doubleclick.net https://*.adtrafficquality.google
+
+# Hashed build assets never change: cache for a year.
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# pdf.js fonts, character maps and decoders: change only when pdfjs-dist is upgraded.
+/pdfjs/*
+  Cache-Control: public, max-age=604800

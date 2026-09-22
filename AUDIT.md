@@ -11,7 +11,7 @@ Last full run: 2026-09-22, all green.
 | Unit tests (Vitest) | `npm run test:unit` | 80 passed |
 | SEO + links + a11y markup | `npm run audit` | 27 pages, 25 sitemap URLs, 16 tools, no problems |
 | Initial-load budget | `npm run check:bundles` | all pages ≤ 25.7 KB gzipped (budget 100 KB); no pdf-lib, pdf.js, jszip or qrcode in any initial load |
-| End-to-end (Playwright) | `npm run test` | 85 passed |
+| End-to-end (Playwright) | `npm run test` | 86 passed (run with the production `_headers`, incl. the CSP) |
 | Content table | `python scripts/content-report.py` | every tool: title ≤ 60, description ≤ 155, 600+ words, 6–8 FAQs |
 
 What `npm run audit` checks on every page of `dist/`: unique title and description, lengths, one H1,

@@ -1,0 +1,8 @@
+# Cloudflare Pages redirects (path-based only).
+#
+# Trailing slash → no trailing slash, e.g. /merge-pdf/ → /merge-pdf (the root "/" is not affected).
+/*/  /:splat  301
+#
+# www → apex (www.example.com → example.com) cannot be done in this file: Pages redirects match
+# paths, not hostnames. Set it up in the Cloudflare dashboard with a Redirect Rule, as described in
+# DEPLOY.md, step 3.

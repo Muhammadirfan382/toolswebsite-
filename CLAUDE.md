@@ -41,7 +41,12 @@ and must stay true in code.
 ## Commands
 - `npm run dev`: local dev
 - `npm run build`: production build to dist/
-- `npm run test`: Playwright tests
+- `npm run test`: build, then Playwright tests (local Edge; CI installs Chromium)
+- `npm run test:unit`: Vitest unit tests
+- `npm run audit`: SEO / link / accessibility audit of dist/
+- `npm run check:bundles`: initial-load budget and lazy-library check
+- `npm run verify`: everything above plus the type check (run before every deploy)
+- Deployment steps: DEPLOY.md. Audit results and the VERIFY list: AUDIT.md.
 
 ## Project notes
 - Placeholders `{{BRAND}}`, `{{EMAIL}}` and the domain live in ONE place: `src/data/site.ts`.

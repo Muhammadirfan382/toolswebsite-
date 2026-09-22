@@ -1,6 +1,8 @@
 // Minimal static server for dist/ that behaves like Cloudflare Pages for our URLs:
-// "/about" serves about.html, "/" serves index.html, unknown paths serve 404.html with status 404.
-// Used by Playwright and Lighthouse. Usage: node scripts/serve-dist.mjs [port]
+// "/about" serves about.html, "/" serves index.html, unknown paths serve 404.html with status 404,
+// and the rules in dist/_headers (Content-Security-Policy etc.) are applied, so tests run under the
+// same policy as production. Used by Playwright and Lighthouse.
+// Usage: node scripts/serve-dist.mjs [port]
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
@@ -21,6 +23,36 @@ const types = {
   '.wasm': 'application/wasm',
 };
 
+/** Parse Cloudflare's _headers format: a path pattern, then indented "Name: value" lines. */
+async function loadHeaderRules() {
+  let text = '';
+  try {
+    text = await readFile(join(root, '_headers'), 'utf8');
+  } catch {
+    return [];
+  }
+  const rules = [];
+  for (const line of text.split(/\r?\n/)) {
+    if (!line.trim() || line.trim().startsWith('#')) continue;
+    if (!/^\s/.test(line)) {
+      // "/_astro/*" becomes /^\/_astro\/.*$/
+      const pattern = line
+        .trim()
+        .split('*')
+        .map((part) => part.replace(/[.+?^${}()|[\]\\/]/g, '\\$&'))
+        .join('.*');
+      rules.push({ re: new RegExp(`^${pattern}$`), headers: {} });
+    } else if (rules.length) {
+      const i = line.indexOf(':');
+      rules.at(-1).headers[line.slice(0, i).trim()] = line.slice(i + 1).trim();
+    }
+  }
+  return rules;
+}
+const headerRules = await loadHeaderRules();
+const headersFor = (pathname) =>
+  Object.assign({}, ...headerRules.filter((r) => r.re.test(pathname)).map((r) => r.headers));
+
 async function tryFile(path) {
   try {
     const s = await stat(path);
@@ -32,7 +64,7 @@ async function tryFile(path) {
 
 createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', 'http://localhost');
-  let pathname = decodeURIComponent(url.pathname);
+  const pathname = decodeURIComponent(url.pathname);
   // Mirror public/_redirects: drop trailing slashes.
   if (pathname.length > 1 && pathname.endsWith('/')) {
     res.writeHead(301, { Location: pathname.slice(0, -1) + url.search });
@@ -50,8 +82,9 @@ createServer(async (req, res) => {
   file ??= join(root, '404.html');
   const body = await readFile(file);
   res.writeHead(status, {
-    'Content-Type': types[extname(file)] ?? 'application/octet-stream',
     'Cache-Control': 'no-cache',
+    ...headersFor(pathname),
+    'Content-Type': types[extname(file)] ?? 'application/octet-stream',
   });
   res.end(body);
 }).listen(port, () => console.log(`Serving dist/ at http://localhost:${port}`));

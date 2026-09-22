@@ -59,3 +59,13 @@ test('ZIP download works offline once files were picked', async ({ page, context
   await page.getByRole('button', { name: 'Download all as ZIP' }).click();
   expect((await download).suggestedFilename()).toBe('compressed-images.zip');
 });
+
+test('pages are served with the production security headers (from public/_headers)', async ({ page }) => {
+  const res = await page.goto('/merge-pdf');
+  const headers = res!.headers();
+  expect(headers['content-security-policy']).toContain("default-src 'self'");
+  expect(headers['content-security-policy']).toContain("script-src 'self' 'wasm-unsafe-eval'");
+  expect(headers['x-content-type-options']).toBe('nosniff');
+  expect(headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
+  expect(headers['permissions-policy']).toContain('camera=()');
+});

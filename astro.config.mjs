@@ -11,6 +11,12 @@ export default defineConfig({
     // about.html instead of about/index.html, so /about needs no trailing-slash redirect.
     format: 'file',
   },
+  vite: {
+    build: {
+      // Never inline scripts into HTML, so the Content-Security-Policy can be script-src 'self'.
+      assetsInlineLimit: 0,
+    },
+  },
   integrations: [
     sitemap({
       filter: (page) => !page.includes('/dev/') && !/\/404(\.html)?$/.test(page),
