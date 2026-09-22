@@ -150,3 +150,18 @@ export const BMI_CATEGORIES: BmiCategory[] = [
   { id: 'overweight', label: 'Overweight', min: 25, max: 30, displayMax: 29.9 },
   { id: 'obese', label: 'Obese', min: 30, max: Infinity, displayMax: Infinity },
 ];
+
+/* ------------------------------------------------------------------ */
+/* QR code printing guidance (general rules of thumb, not standards)   */
+/* ------------------------------------------------------------------ */
+
+export const QR_PRINT_GUIDE = {
+  /** Smallest printed side length commonly recommended for phone scanning. */
+  minSizeCm: 2,
+  /** Rough rule: scanning distance ≈ this many times the code's width. */
+  distanceRatio: 10,
+  /** Minimum color contrast ratio before we warn that a code may not scan. */
+  minContrast: 4,
+  verify: true, // ⚠ VERIFY: industry rules of thumb; test-print before large runs
+  source: '',
+} as const;

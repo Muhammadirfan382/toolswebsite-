@@ -25,7 +25,12 @@ export function initTabs(root: HTMLElement, onChange?: (panelId: string) => void
       panels[i]!.hidden = !active;
     });
     current = panels[index]!.id;
-    if (focus) tabs[index]!.focus();
+    // Keep the selected tab visible in a horizontally scrolling tab row (without moving the page).
+    const tab = tabs[index]!;
+    if (tab.offsetLeft < tablist.scrollLeft || tab.offsetLeft + tab.offsetWidth > tablist.scrollLeft + tablist.clientWidth) {
+      tablist.scrollLeft = tab.offsetLeft - (tablist.clientWidth - tab.offsetWidth) / 2;
+    }
+    if (focus) tab.focus();
     onChange?.(current);
   };
 

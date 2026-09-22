@@ -1,10 +1,90 @@
 ---
 import ToolLayout from '../layouts/ToolLayout.astro';
-import ComingSoon from '../components/ComingSoon.astro';
 import { getTool } from '../data/tools';
 import { SITE } from '../data/site';
+import { QR_PRINT_GUIDE } from '../data/presets';
 
 const tool = getTool('qr-code-generator');
+
+interface F {
+  id: string;
+  label: string;
+  type?: string;
+  inputmode?: 'text' | 'tel' | 'email' | 'url' | 'decimal';
+  area?: boolean;
+  placeholder?: string;
+  hint?: string;
+  autocomplete?: string;
+}
+interface T {
+  id: string;
+  tab: string;
+  fields: F[];
+}
+const types: T[] = [
+  { id: 'url', tab: 'URL', fields: [{ id: 'url', label: 'Website address', inputmode: 'url', placeholder: 'example.com/menu' }] },
+  { id: 'text', tab: 'Text', fields: [{ id: 'text', label: 'Text', area: true }] },
+  {
+    id: 'wifi',
+    tab: 'WiFi',
+    fields: [
+      { id: 'ssid', label: 'Network name (SSID)' },
+      { id: 'wifipass', label: 'Password', autocomplete: 'off' },
+    ],
+  },
+  {
+    id: 'email',
+    tab: 'Email',
+    fields: [
+      { id: 'mailto', label: 'Send to (email address)', inputmode: 'email' },
+      { id: 'subject', label: 'Subject (optional)' },
+      { id: 'body', label: 'Message (optional)', area: true },
+    ],
+  },
+  { id: 'phone', tab: 'Phone', fields: [{ id: 'tel', label: 'Phone number', inputmode: 'tel', placeholder: '+1 555 010 0000' }] },
+  {
+    id: 'sms',
+    tab: 'SMS',
+    fields: [
+      { id: 'smsnum', label: 'Phone number', inputmode: 'tel' },
+      { id: 'smsmsg', label: 'Message (optional)', area: true },
+    ],
+  },
+  {
+    id: 'whatsapp',
+    tab: 'WhatsApp',
+    fields: [
+      { id: 'wanum', label: 'WhatsApp number with country code', inputmode: 'tel', placeholder: '+44 7700 900123', hint: 'Include the country code, without the leading 0.' },
+      { id: 'wamsg', label: 'Pre-filled message (optional)', area: true },
+    ],
+  },
+  {
+    id: 'vcard',
+    tab: 'Contact (vCard)',
+    fields: [
+      { id: 'vfirst', label: 'First name' },
+      { id: 'vlast', label: 'Last name' },
+      { id: 'vphone', label: 'Phone', inputmode: 'tel' },
+      { id: 'vemail', label: 'Email', inputmode: 'email' },
+      { id: 'vcompany', label: 'Company' },
+      { id: 'vtitle', label: 'Job title' },
+      { id: 'vweb', label: 'Website', inputmode: 'url' },
+      { id: 'vstreet', label: 'Street address' },
+      { id: 'vcity', label: 'City' },
+      { id: 'vregion', label: 'State / region' },
+      { id: 'vpost', label: 'Postal code' },
+      { id: 'vcountry', label: 'Country' },
+    ],
+  },
+  {
+    id: 'geo',
+    tab: 'Location',
+    fields: [
+      { id: 'lat', label: 'Latitude', inputmode: 'decimal', placeholder: '40.7128' },
+      { id: 'lng', label: 'Longitude', inputmode: 'decimal', placeholder: '-74.0060' },
+    ],
+  },
+];
 ---
 
 <ToolLayout
@@ -13,7 +93,437 @@ const tool = getTool('qr-code-generator');
   description={`${tool.description} Free, no sign-up, and it runs in your browser.`}
   h1={`${tool.name} Online Free`}
   intro={tool.description}
+  privacySubject="your data"
 >
-  <ComingSoon tool={tool} />
+  <div class="qr-layout">
+    <div class="qr-inputs">
+      <div data-tabs id="qr-tabs">
+        <div role="tablist" class="tablist" aria-label="QR code content type" hidden>
+          {
+            types.map((t) => (
+              <button type="button" role="tab" id={`tab-${t.id}`} aria-controls={`panel-${t.id}`} aria-selected="false" tabindex="-1">
+                {t.tab}
+              </button>
+            ))
+          }
+        </div>
+        {
+          types.map((t) => (
+            <section role="tabpanel" id={`panel-${t.id}`} aria-labelledby={`tab-${t.id}`} class="panel" data-type={t.id}>
+              <h2 class="panel-title visually-hidden">{t.tab}</h2>
+              <div class={t.id === 'vcard' ? 'form-grid' : 'stack'}>
+                {t.fields.map((f) => (
+                  <div class="field">
+                    <label for={`qr-${f.id}`}>{f.label}</label>
+                    {f.area ? (
+                      <textarea id={`qr-${f.id}`} rows="3" data-field={f.id} />
+                    ) : (
+                      <input
+                        type="text"
+                        id={`qr-${f.id}`}
+                        data-field={f.id}
+                        inputmode={f.inputmode}
+                        placeholder={f.placeholder}
+                        autocomplete={f.autocomplete ?? 'off'}
+                        aria-describedby={f.hint ? `qr-${f.id}-hint` : undefined}
+                      />
+                    )}
+                    {f.hint && <span class="hint" id={`qr-${f.id}-hint`}>{f.hint}</span>}
+                  </div>
+                ))}
+                {t.id === 'wifi' && (
+                  <>
+                    <div class="field">
+                      <label for="qr-security">Security</label>
+                      <select id="qr-security" data-field="security">
+                        <option value="WPA">WPA / WPA2 / WPA3</option>
+                        <option value="WEP">WEP</option>
+                        <option value="nopass">None (open network)</option>
+                      </select>
+                    </div>
+                    <label class="check">
+                      <input type="checkbox" data-field="hidden" /> Hidden network
+                    </label>
+                  </>
+                )}
+              </div>
+            </section>
+          ))
+        }
+      </div>
+
+      <details class="panel options" open>
+        <summary>Design options</summary>
+        <div class="form-grid">
+          <div class="field">
+            <label for="qr-size">Size: <output id="qr-size-out" for="qr-size">1024</output> px</label>
+            <input type="range" id="qr-size" min="256" max="2048" step="64" value="1024" />
+          </div>
+          <div class="field">
+            <label for="qr-margin">Margin: <output id="qr-margin-out" for="qr-margin">4</output> modules</label>
+            <input type="range" id="qr-margin" min="0" max="10" step="1" value="4" />
+          </div>
+          <div class="field">
+            <label for="qr-fg">Code color</label>
+            <input type="color" id="qr-fg" value="#000000" />
+          </div>
+          <div class="field">
+            <label for="qr-bg">Background color</label>
+            <input type="color" id="qr-bg" value="#ffffff" />
+          </div>
+          <div class="field">
+            <label for="qr-level">Error correction</label>
+            <select id="qr-level" aria-describedby="qr-level-hint">
+              <option value="L">L – about 7% can be damaged</option>
+              <option value="M" selected>M – about 15%</option>
+              <option value="Q">Q – about 25%</option>
+              <option value="H">H – about 30% (best with a logo)</option>
+            </select>
+            <span class="hint" id="qr-level-hint">Higher levels survive dirt and logos but make the code denser.</span>
+          </div>
+          <div class="field">
+            <span class="label" id="logo-label">Center logo (optional)</span>
+            <div class="logo-row">
+              <button type="button" class="btn btn--secondary" id="qr-logo-btn" aria-describedby="logo-label">Add logo</button>
+              <button type="button" class="btn btn--secondary" id="qr-logo-remove" hidden>Remove logo</button>
+            </div>
+            <input type="file" id="qr-logo" accept="image/png,image/jpeg,image/webp,image/svg+xml" class="visually-hidden" tabindex="-1" aria-hidden="true" />
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <div class="qr-output">
+      <div class="preview" id="qr-preview">
+        <canvas id="qr-canvas" width="256" height="256" role="img" aria-label="QR code preview"></canvas>
+        <p class="placeholder muted" id="qr-placeholder">Your QR code appears here.</p>
+      </div>
+      <div id="qr-messages" aria-live="polite"></div>
+      <div class="actions dl">
+        <button type="button" class="btn" data-dl="png" disabled>Download PNG</button>
+        <button type="button" class="btn btn--secondary" data-dl="svg" disabled>SVG</button>
+        <button type="button" class="btn btn--secondary" data-dl="jpg" disabled>JPG</button>
+        <button type="button" class="btn btn--secondary" id="qr-copy" disabled hidden>Copy image</button>
+      </div>
+      <p class="visually-hidden" aria-live="polite" id="qr-status"></p>
+    </div>
+  </div>
+
+  <div class="notes">
+    <p>
+      <strong>These are static QR codes.</strong> They never expire and have no scan limits, because the data is
+      stored in the code itself. There is no tracking and no redirect through our site.
+    </p>
+    <p>
+      <strong>Test your code:</strong> scan it with your phone camera before printing. As a general guideline,
+      print it at least {QR_PRINT_GUIDE.minSizeCm} × {QR_PRINT_GUIDE.minSizeCm} cm, and larger if people will scan from
+      further away (roughly 1 cm of code for every {QR_PRINT_GUIDE.distanceRatio} cm of distance).
+    </p>
+  </div>
+
+  <script type="application/json" id="qr-cfg" set:html={JSON.stringify({ minContrast: QR_PRINT_GUIDE.minContrast })} />
+
   <!-- TODO (Prompt 8): long content goes in slot="content" -->
 </ToolLayout>
+
+<script>
+  import {
+    emailPayload,
+    geoPayload,
+    phonePayload,
+    smsPayload,
+    textPayload,
+    urlPayload,
+    vcardPayload,
+    whatsappPayload,
+    wifiPayload,
+    colorWarning,
+    type PayloadResult,
+  } from '../lib/qr/payload';
+  import { canvasToBlob, drawToCanvas, makeMatrix, toSvg, QrTooLongError, type ErrorLevel, type QrMatrix, type QrOptions } from '../lib/qr/render';
+  import { initTabs } from '../lib/tabs';
+  import { debounce } from '../lib/autogrow';
+  import { downloadBlob } from '../lib/download';
+
+  const cfg = JSON.parse(document.getElementById('qr-cfg')!.textContent!) as { minContrast: number };
+  const $ = <T extends HTMLElement = HTMLInputElement>(id: string) => document.getElementById(id) as T;
+  const v = (field: string) => (document.querySelector<HTMLInputElement>(`[data-field="${field}"]`)?.value ?? '');
+  const canvas = $<HTMLCanvasElement>('qr-canvas');
+  const messages = $<HTMLElement>('qr-messages');
+  const status = $<HTMLElement>('qr-status');
+  const placeholder = $<HTMLElement>('qr-placeholder');
+  const levelSelect = $<HTMLSelectElement>('qr-level');
+  const dlButtons = [...document.querySelectorAll<HTMLButtonElement>('[data-dl]')];
+  const copyBtn = $<HTMLButtonElement>('qr-copy');
+
+  let activeType = 'url';
+  let logo: HTMLImageElement | null = null;
+  let logoDataUrl = '';
+  let current: { matrix: QrMatrix; opts: QrOptions } | null = null;
+  let renderId = 0;
+
+  const builders: Record<string, () => PayloadResult> = {
+    url: () => urlPayload(v('url')),
+    text: () => textPayload(v('text')),
+    wifi: () =>
+      wifiPayload({
+        ssid: v('ssid'),
+        password: v('wifipass'),
+        security: v('security') as 'WPA' | 'WEP' | 'nopass',
+        hidden: document.querySelector<HTMLInputElement>('[data-field="hidden"]')!.checked,
+      }),
+    email: () => emailPayload({ to: v('mailto'), subject: v('subject'), body: v('body') }),
+    phone: () => phonePayload(v('tel')),
+    sms: () => smsPayload({ number: v('smsnum'), message: v('smsmsg') }),
+    whatsapp: () => whatsappPayload({ number: v('wanum'), message: v('wamsg') }),
+    vcard: () =>
+      vcardPayload({
+        firstName: v('vfirst'), lastName: v('vlast'), phone: v('vphone'), email: v('vemail'), company: v('vcompany'),
+        title: v('vtitle'), website: v('vweb'), street: v('vstreet'), city: v('vcity'), region: v('vregion'),
+        postcode: v('vpost'), country: v('vcountry'),
+      }),
+    geo: () => geoPayload(v('lat'), v('lng')),
+  };
+
+  const hasInput = () =>
+    [...document.querySelectorAll<HTMLInputElement>(`#panel-${activeType} [data-field]`)].some(
+      (el) => el.type !== 'checkbox' && el.tagName !== 'SELECT' && el.value.trim() !== '',
+    );
+
+  function setMessages(list: { text: string; kind: 'error' | 'warn' }[]) {
+    messages.replaceChildren(
+      ...list.map((m) => {
+        const p = document.createElement('p');
+        p.className = m.kind === 'error' ? 'error-text' : 'warn-text';
+        p.textContent = m.text;
+        return p;
+      }),
+    );
+  }
+
+  function setReady(ready: boolean) {
+    dlButtons.forEach((b) => (b.disabled = !ready));
+    copyBtn.disabled = !ready;
+    canvas.hidden = !ready;
+    placeholder.hidden = ready;
+    if (!ready) current = null;
+  }
+
+  async function render() {
+    const id = ++renderId;
+    const msgs: { text: string; kind: 'error' | 'warn' }[] = [];
+    const fg = $('qr-fg').value;
+    const bg = $('qr-bg').value;
+    const colorMsg = colorWarning(fg, bg, cfg.minContrast);
+    if (colorMsg) msgs.push({ text: colorMsg, kind: 'warn' });
+    if (logo && levelSelect.value !== 'H') {
+      msgs.push({ text: 'With a logo, error correction H is recommended so the code still scans.', kind: 'warn' });
+    }
+
+    if (!hasInput()) {
+      setMessages(msgs);
+      return setReady(false);
+    }
+    const result = builders[activeType]!();
+    if (!result.ok) {
+      setMessages([{ text: result.error, kind: 'error' }, ...msgs]);
+      return setReady(false);
+    }
+    if (result.warning) msgs.unshift({ text: result.warning, kind: 'warn' });
+
+    const opts: QrOptions = {
+      sizePx: Number($('qr-size').value),
+      margin: Number($('qr-margin').value),
+      foreground: fg,
+      background: bg,
+      level: levelSelect.value as ErrorLevel,
+      logo,
+    };
+    try {
+      const matrix = await makeMatrix(result.payload, opts.level);
+      if (id !== renderId) return; // a newer render started
+      drawToCanvas(canvas, matrix, opts);
+      current = { matrix, opts };
+      setMessages(msgs);
+      setReady(true);
+    } catch (err) {
+      if (id !== renderId) return;
+      setMessages([
+        { text: err instanceof QrTooLongError ? err.message : 'The QR code could not be created. Check your input and try again.', kind: 'error' },
+        ...msgs,
+      ]);
+      setReady(false);
+    }
+  }
+
+  const renderSoon = debounce(render, 120);
+
+  // Inputs
+  document.getElementById('qr-tabs')!.addEventListener('input', renderSoon);
+  document.getElementById('qr-tabs')!.addEventListener('change', renderSoon);
+  for (const id of ['qr-size', 'qr-margin']) {
+    $(id).addEventListener('input', () => {
+      $<HTMLOutputElement>(`${id}-out`).value = $(id).value;
+      renderSoon();
+    });
+  }
+  for (const id of ['qr-fg', 'qr-bg']) $(id).addEventListener('input', renderSoon);
+  levelSelect.addEventListener('change', render);
+
+  // Logo
+  const logoInput = $('qr-logo');
+  $('qr-logo-btn').addEventListener('click', () => logoInput.click());
+  logoInput.addEventListener('change', () => {
+    const file = logoInput.files?.[0];
+    logoInput.value = '';
+    if (!file) return;
+    if (!/^image\/(png|jpeg|webp|svg\+xml)$/.test(file.type)) {
+      return setMessages([{ text: `"${file.name}" is not a PNG, JPG, WebP or SVG image.`, kind: 'error' }]);
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      return setMessages([{ text: `"${file.name}" is larger than 5 MB. Use a smaller logo image.`, kind: 'error' }]);
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        logo = img;
+        logoDataUrl = String(reader.result);
+        levelSelect.value = 'H';
+        $('qr-logo-remove').hidden = false;
+        status.textContent = 'Logo added. Error correction switched to H.';
+        render();
+      };
+      img.onerror = () => setMessages([{ text: `"${file.name}" could not be opened as an image. It may be damaged.`, kind: 'error' }]);
+      img.src = String(reader.result);
+    };
+    reader.readAsDataURL(file);
+  });
+  $('qr-logo-remove').addEventListener('click', () => {
+    logo = null;
+    logoDataUrl = '';
+    $('qr-logo-remove').hidden = true;
+    $('qr-logo-btn').focus();
+    status.textContent = 'Logo removed.';
+    render();
+  });
+
+  // Downloads
+  const fileBase = () => `qr-code-${activeType}`;
+  for (const btn of dlButtons) {
+    btn.addEventListener('click', async () => {
+      if (!current) return;
+      const kind = btn.dataset.dl;
+      try {
+        if (kind === 'svg') {
+          const svg = toSvg(current.matrix, current.opts, logoDataUrl);
+          downloadBlob(new Blob([svg], { type: 'image/svg+xml' }), `${fileBase()}.svg`);
+        } else if (kind === 'png') {
+          downloadBlob(await canvasToBlob(canvas, 'image/png'), `${fileBase()}.png`);
+        } else {
+          // The canvas is fully opaque (background filled), so JPG needs no extra flattening.
+          downloadBlob(await canvasToBlob(canvas, 'image/jpeg', 0.95), `${fileBase()}.jpg`);
+        }
+        status.textContent = `Downloading ${kind!.toUpperCase()}.`;
+      } catch {
+        setMessages([
+          {
+            text: 'Your browser could not save this image. If you added an SVG logo, try a PNG logo instead, or download the SVG version.',
+            kind: 'error',
+          },
+        ]);
+      }
+    });
+  }
+
+  if (typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
+    copyBtn.hidden = false;
+    copyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': canvasToBlob(canvas, 'image/png') })]);
+        status.textContent = 'QR code image copied.';
+        copyBtn.textContent = 'Copied ✓';
+      } catch {
+        status.textContent = 'Your browser did not allow copying the image. Use Download PNG instead.';
+        copyBtn.textContent = 'Copy failed';
+      }
+      setTimeout(() => (copyBtn.textContent = 'Copy image'), 2000);
+    });
+  }
+
+  const params = new URLSearchParams(location.search);
+  const initialType = params.get('type');
+  initTabs(
+    document.getElementById('qr-tabs')!,
+    (panelId) => {
+      activeType = panelId.replace('panel-', '');
+      render();
+    },
+    initialType ? `panel-${initialType}` : null,
+  );
+</script>
+
+<style>
+  .qr-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr); /* stop the tab row from widening the page */
+    gap: var(--space-4);
+  }
+  @media (min-width: 56rem) {
+    .qr-layout {
+      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+      align-items: start;
+    }
+    .qr-output {
+      position: sticky;
+      top: var(--space-3);
+    }
+  }
+  .stack {
+    display: grid;
+    gap: var(--space-3);
+  }
+  .options {
+    margin-top: var(--space-3);
+  }
+  .options summary {
+    display: flex;
+    align-items: center;
+    min-height: var(--tap);
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: var(--space-2);
+  }
+  .label {
+    font-weight: 600;
+    font-size: var(--text-sm);
+  }
+  .logo-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+  .preview {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1;
+    max-width: 22rem;
+    margin-inline: auto;
+    padding: var(--space-3);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .preview canvas {
+    width: 100%;
+    height: auto;
+    image-rendering: pixelated;
+  }
+  .dl {
+    justify-content: center;
+  }
+  .notes {
+    margin-top: var(--space-4);
+    max-width: var(--prose-width);
+  }
+</style>
