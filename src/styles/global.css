@@ -603,3 +603,78 @@ td {
   display: grid;
   gap: var(--space-3);
 }
+
+/* ==========================================================================
+   Ad slots (Phase 4). Height is reserved before any ad loads; see src/data/ads.ts.
+   ========================================================================== */
+.ad-slot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: var(--ad-h-m);
+  margin-block: var(--space-5);
+  overflow: hidden;
+  background: var(--surface-2);
+  contain: layout paint;
+}
+@media (min-width: 768px) {
+  .ad-slot {
+    height: var(--ad-h-d);
+  }
+}
+.ad-label {
+  position: absolute;
+  inset-block-start: 2px;
+  inset-inline-start: var(--space-2);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.ad-slot ins.adsbygoogle {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.ad-placeholder {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-align: center;
+  padding: var(--space-3);
+}
+.ad-slot[data-ad-mode='placeholder'] {
+  border: 1px dashed var(--border-strong);
+}
+/* Waits for a result (after-result), or collapsed while off screen when unfilled. */
+.ad-slot--wait {
+  display: none;
+}
+.ad-slot--collapsed {
+  height: 0;
+  margin: 0;
+  border: 0;
+}
+/* Desktop sidebar: only on wide screens, sticky, never overlapping content. */
+.ad-slot[data-min-width='1200'] {
+  display: none;
+}
+@media (min-width: 1200px) {
+  .ad-slot[data-min-width='1200'] {
+    display: flex;
+    position: sticky;
+    inset-block-start: var(--space-3);
+    margin-block: 0;
+  }
+}
+/* Optional anchor at the bottom of the screen (off by default). */
+.ad-slot--anchor {
+  position: fixed;
+  inset-inline: 0;
+  inset-block-end: 0;
+  z-index: 20;
+  margin: 0;
+  border-block-start: 1px solid var(--border);
+}
+body:has(.ad-slot--anchor) {
+  padding-block-end: 90px;
+}

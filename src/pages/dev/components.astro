@@ -10,7 +10,7 @@ import HowToSteps from '../../components/HowToSteps.astro';
 import FAQ from '../../components/FAQ.astro';
 import Breadcrumbs from '../../components/Breadcrumbs.astro';
 import RelatedTools from '../../components/RelatedTools.astro';
-import { ADS_ENABLED } from '../../data/site';
+import { ADS_MODE } from '../../data/ads';
 ---
 
 <BaseLayout title="Component test page (dev)" description="Internal test page for shared components." noindex>
@@ -37,8 +37,8 @@ import { ADS_ENABLED } from '../../data/site';
     <p id="demo-pdf-out" class="muted" aria-live="polite"></p>
 
     <h2>AdSlot</h2>
-    <p class="muted">ADS_ENABLED = {String(ADS_ENABLED)}. When false, nothing renders below.</p>
-    <AdSlot id="dev-demo" />
+    <p class="muted">Ads mode: {ADS_MODE}. When "off", nothing renders below. See /dev/ads-preview for every slot.</p>
+    <AdSlot page="tool" slot="below-howto" />
 
     <HowToSteps heading="HowToSteps demo" steps={['Choose your files.', 'Pick your options.', 'Download the result.']} />
     <FAQ faqs={[{ q: 'Is this a demo question?', a: 'Yes. This is the FAQ component.' }, { q: 'Does it use details/summary?', a: 'Yes, so it works without JavaScript.' }]} />

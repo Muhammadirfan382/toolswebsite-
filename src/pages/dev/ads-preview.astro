@@ -1,0 +1,147 @@
+---
+/**
+ * Review page for ad placements (noindex, excluded from the sitemap).
+ * Shows every configured slot with its reserved size, and live previews of real pages at phone,
+ * tablet and desktop widths. The previews only show boxes in a build with ads on, e.g.
+ *   ADS_MODE=placeholder npm run build && npm run preview
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { ADS_MODE, PLACEMENTS, PUB_ID_VALID, IN_CONTENT } from '../../data/ads';
+
+const pageTypes = Object.entries(PLACEMENTS);
+const previews = [
+  { label: 'Tool: Compress Image', path: '/compress-image' },
+  { label: 'Tool: Percentage Calculator', path: '/percentage-calculator' },
+  { label: 'Hub: PDF Tools', path: '/pdf-tools' },
+  { label: 'Home', path: '/' },
+];
+const widths = [
+  { name: 'Phone', w: 375, h: 812 },
+  { name: 'Tablet', w: 768, h: 1024 },
+  { name: 'Desktop', w: 1280, h: 900 },
+];
+---
+
+<BaseLayout title="Ad placements preview (dev)" description="Internal review page for ad slot placements." noindex>
+  <div class="container">
+    <h1>Ad placements preview</h1>
+    <p class="lead">
+      Current mode: <strong>{ADS_MODE}</strong>. Publisher id {PUB_ID_VALID ? 'set' : 'not set yet'}.
+      {ADS_MODE === 'off' && ' Build with ADS_MODE=placeholder to see the reserved boxes in the previews below.'}
+    </p>
+
+    <h2>Slots and reserved heights</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th scope="col">Page type</th><th scope="col">Slot</th><th scope="col">Enabled</th><th scope="col">Phone</th><th scope="col">≥ 768px</th><th scope="col">Notes</th></tr>
+        </thead>
+        <tbody>
+          {
+            pageTypes.flatMap(([page, slots]) =>
+              Object.entries(slots).map(([slot, c]) => (
+                <tr>
+                  <td>{page}</td>
+                  <td>{slot}</td>
+                  <td>{c.enabled ? 'yes' : 'no'}</td>
+                  <td>{c.minWidth ? '—' : `${c.height.mobile}px`}</td>
+                  <td>{c.height.desktop}px</td>
+                  <td>
+                    {[
+                      c.afterResult && 'appears after a result is shown',
+                      c.minWidth && `only at ≥ ${c.minWidth}px, sticky`,
+                      slot.startsWith('in-content') &&
+                        `inserted before the first H2 after ${Math.round(((IN_CONTENT as Record<string, { slot: string; at: number }[]>)[page]?.find((x) => x.slot === slot)?.at ?? 0) * 100)}% of the article`,
+                      !c.adUnit && 'no AdSense unit id yet',
+                    ]
+                      .filter(Boolean)
+                      .join('; ')}
+                  </td>
+                </tr>
+              )),
+            )
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <h2>Sample boxes at their reserved size</h2>
+    <div class="samples">
+      {
+        [250, 280, 600].map((h) => (
+          <div class="sample" style={`height:${h}px`}>
+            <span class="ad-label">Advertisement</span>
+            <span class="ad-placeholder">{h}px reserved</span>
+          </div>
+        ))
+      }
+    </div>
+
+    <h2>Pages at each width</h2>
+    {
+      previews.map((p) => (
+        <section class="preview">
+          <h3>{p.label}</h3>
+          <div class="frames">
+            {widths.map((w) => (
+              <figure>
+                <figcaption>{w.name} · {w.w}px</figcaption>
+                <div class="frame-box" style={`width:${w.w * 0.4}px;height:${w.h * 0.4}px`}>
+                  <iframe
+                    src={p.path}
+                    title={`${p.label} at ${w.w}px`}
+                    loading="lazy"
+                    style={`width:${w.w}px;height:${w.h}px`}
+                  />
+                </div>
+              </figure>
+            ))}
+          </div>
+        </section>
+      ))
+    }
+  </div>
+</BaseLayout>
+
+<style>
+  .samples {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+  .sample {
+    position: relative;
+    width: 300px;
+    max-width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface-2);
+    border: 1px dashed var(--border-strong);
+  }
+  .frames {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    align-items: flex-start;
+  }
+  figure {
+    margin: 0;
+  }
+  figcaption {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    margin-bottom: var(--space-1);
+  }
+  .frame-box {
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    max-width: 100%;
+  }
+  .frame-box iframe {
+    border: 0;
+    transform: scale(0.4);
+    transform-origin: 0 0;
+  }
+</style>

@@ -3,6 +3,10 @@ import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
 import { readdirSync, readFileSync } from 'node:fs';
 import { SITE } from './src/data/site.ts';
+import { ADS_MODE } from './src/data/ads.ts';
+import { satteri } from '@astrojs/markdown-satteri';
+import adSlotsPlugin from './scripts/ad-slots-plugin.mjs';
+import { adsHeadersIntegration } from './scripts/ads-headers.mjs';
 
 // Draft guides must never reach the sitemap, even in a SHOW_DRAFTS preview build.
 const guideDir = new URL('./src/content/guides/', import.meta.url);
@@ -44,7 +48,13 @@ export default defineConfig({
       assetsInlineLimit: 0,
     },
   },
+  markdown: {
+    // Sätteri is Astro's Markdown processor; in-article ad slots are added only when ads are
+    // not "off" (src/data/ads.ts).
+    processor: satteri({ hastPlugins: ADS_MODE === 'off' ? [] : [adSlotsPlugin()] }),
+  },
   integrations: [
+    adsHeadersIntegration(ADS_MODE),
     sitemap({
       filter: (page) =>
         !page.includes('/dev/') &&

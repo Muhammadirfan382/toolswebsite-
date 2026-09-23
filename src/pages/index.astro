@@ -2,6 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import ToolCard from '../components/ToolCard.astro';
 import Icon from '../components/Icon.astro';
+import AdSlot from '../components/AdSlot.astro';
 import { SITE } from '../data/site';
 import { CATEGORIES, toolsIn } from '../data/tools';
 
@@ -27,7 +28,7 @@ const jsonLd = [
 ];
 ---
 
-<BaseLayout title={title} description={description}>
+<BaseLayout title={title} description={description} adsPage="home">
   <script type="application/ld+json" slot="head" set:html={JSON.stringify(jsonLd)} />
 
   <div class="container">
@@ -73,6 +74,8 @@ const jsonLd = [
       ))
     }
 
+    <AdSlot page="home" slot="after-grid" />
+
     <section class="prose intro" aria-labelledby="about-tools">
       <h2 id="about-tools">Simple tools for everyday tasks</h2>
       <p>
@@ -114,6 +117,8 @@ const jsonLd = [
         Pick a category above, or use the search box to jump straight to the tool you need.
       </p>
     </section>
+
+    <AdSlot page="home" slot="end" />
   </div>
 </BaseLayout>
 

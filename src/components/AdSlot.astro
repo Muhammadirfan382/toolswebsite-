@@ -1,28 +1,47 @@
 ---
 /**
- * Reserved space for a future ad unit. Fixed min-height prevents layout shift when ads load.
- * Renders nothing while ADS_ENABLED is false (src/data/site.ts). No ad code yet (Phase 4).
+ * One ad slot. Renders nothing when ads are off or the slot is disabled in src/data/ads.ts.
+ * The height is reserved in CSS before anything loads (CLS). In live mode the AdSense unit is
+ * requested only when the slot nears the viewport (see src/lib/ads/runtime.ts).
+ * Markup must match scripts/rehype-ad-slots.mjs, which inserts in-article slots.
  */
-import { ADS_ENABLED } from '../data/site';
+import { ADS_MODE, ADSENSE_PUB_ID, slotConfig, type PageType } from '../data/ads';
 
 interface Props {
-  id: string;
-  minHeight?: number;
+  page: PageType;
+  slot: string;
 }
-
-const { id, minHeight = 280 } = Astro.props;
+const { page, slot } = Astro.props;
+const c = slotConfig(page, slot);
+const live = ADS_MODE === 'live';
 ---
 
 {
-  ADS_ENABLED && (
-    <div class="ad-slot" data-slot={id} style={`min-height:${minHeight}px`} aria-hidden="true" />
+  c && (
+    <aside
+      class:list={['ad-slot', { 'ad-slot--anchor': slot === 'footer-anchor', 'ad-slot--wait': c.afterResult }]}
+      data-ad-slot={slot}
+      data-ad-page={page}
+      data-ad-mode={ADS_MODE}
+      data-after-result={c.afterResult ? 'true' : undefined}
+      data-min-width={c.minWidth}
+      aria-label="Advertisement"
+      style={`--ad-h-m:${c.height.mobile}px;--ad-h-d:${c.height.desktop}px`}
+    >
+      <span class="ad-label">Advertisement</span>
+      {live ? (
+        <ins
+          class="adsbygoogle"
+          data-ad-client={ADSENSE_PUB_ID}
+          data-ad-slot={c.adUnit}
+          data-ad-format="auto"
+          data-full-width-responsive="true"
+        />
+      ) : (
+        <span class="ad-placeholder">
+          {slot} · reserved {c.height.mobile}px phone / {c.height.desktop}px desktop
+        </span>
+      )}
+    </aside>
   )
 }
-
-<style>
-  .ad-slot {
-    margin-block: var(--space-4);
-    background: var(--surface-2);
-    border-radius: var(--radius);
-  }
-</style>

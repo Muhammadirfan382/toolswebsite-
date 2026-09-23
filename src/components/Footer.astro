@@ -2,6 +2,7 @@
 import { SITE } from '../data/site';
 import { CATEGORIES, toolsIn, toolPath } from '../data/tools';
 import { getVisibleGuides } from '../lib/guides';
+import { ADS_MODE } from '../data/ads';
 
 const hasGuides = (await getVisibleGuides()).length > 0;
 
@@ -35,6 +36,15 @@ const year = new Date().getFullYear();
           <li><a href="/privacy-policy">Privacy Policy</a></li>
           <li><a href="/terms">Terms of Use</a></li>
           <li><a href="/contact">Contact</a></li>
+          {
+            ADS_MODE === 'live' && (
+              <li>
+                <button type="button" class="linklike" data-privacy-settings>
+                  Privacy settings
+                </button>
+              </li>
+            )
+          }
         </ul>
       </section>
     </div>
@@ -81,6 +91,21 @@ const year = new Date().getFullYear();
     text-decoration: none;
   }
   li a:hover {
+    color: var(--accent);
+    text-decoration: underline;
+  }
+  .linklike {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap);
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--text-muted);
+    font: inherit;
+    cursor: pointer;
+  }
+  .linklike:hover {
     color: var(--accent);
     text-decoration: underline;
   }

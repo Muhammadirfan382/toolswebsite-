@@ -12,6 +12,7 @@ import Breadcrumbs from '../components/Breadcrumbs.astro';
 import FAQ from '../components/FAQ.astro';
 import TryTool from '../components/TryTool.astro';
 import GuideCard from '../components/GuideCard.astro';
+import AdSlot from '../components/AdSlot.astro';
 import { SITE } from '../data/site';
 import { getGuideCategory } from '../data/guides';
 import { formatDate, guidePath, isoDate, readingMinutes, relatedGuides, type Guide } from '../lib/guides';
@@ -59,7 +60,14 @@ const schemas = [
 ];
 ---
 
-<BaseLayout title={`${d.title} | ${SITE.brand}`} description={d.description} ogType="article" ogImage={hero?.src} noindex={d.draft}>
+<BaseLayout
+  title={`${d.title} | ${SITE.brand}`}
+  description={d.description}
+  ogType="article"
+  ogImage={hero?.src}
+  noindex={d.draft}
+  adsPage="guide"
+>
   <Fragment slot="head">
     {schemas.map((s) => <script type="application/ld+json" set:html={toJsonLd(s)} />)}
     <meta property="article:published_time" content={isoDate(d.publishedAt)} />
@@ -99,6 +107,8 @@ const schemas = [
         <p>{d.shortAnswer}</p>
       </div>
 
+      <AdSlot page="guide" slot="after-intro-answer" />
+
       {
         hero && (
           <figure class="hero">
@@ -137,6 +147,8 @@ const schemas = [
           {d.relatedTools.map((slug) => <TryTool slug={slug} />)}
         </div>
       </section>
+
+      <AdSlot page="guide" slot="end" />
     </article>
 
     <FAQ faqs={d.faqs} />

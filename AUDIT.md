@@ -68,6 +68,21 @@ CLAUDE.md requires pdf-lib, pdf.js and jszip to load only when the user picks a 
   everything works offline. If the connection is lost before a file is picked, the page shows a clear
   "could not load, check your connection" message.
 
+## Ads (Phase 4, not live)
+
+Three modes in `src/data/ads.ts`: `off` (default, no ad markup at all), `placeholder` (reserved
+labelled boxes, no scripts) and `live` (needs ADS_ENABLED plus a real `ca-pub-…` id).
+
+Lighthouse mobile, three tool pages, ads off vs placeholder boxes:
+
+| Page | Perf off | Perf placeholder | CLS both |
+| --- | --- | --- | --- |
+| /merge-pdf | 99 | 99 | 0.000 |
+| /compress-image | 99 | 98 | 0.000 |
+| /percentage-calculator | 100 | 100 | 0.000 |
+
+Real ad performance can only be measured once AdSense approves the site and serves real units.
+
 ## Items to verify before launch (⚠ VERIFY)
 
 Official or platform figures, all in `src/data/presets.ts` / `src/data/limits.ts` with `verify: true` and

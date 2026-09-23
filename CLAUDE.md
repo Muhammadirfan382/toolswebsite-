@@ -50,6 +50,9 @@ and must stay true in code.
   sitemap/RSS). For local review only; never deploy it. `npm run dev` also shows drafts.
 - `npm run shots -- <tool-slug>`: screenshots of our tool (mobile + desktop, WebP) into
   src/assets/guides/<slug>/ for guide articles. Run `npm run build` first.
+- Ads (Phase 4) are off by default. `ADS_MODE=placeholder npm run build` shows reserved grey
+  boxes for layout review; live needs ADS_ENABLED plus a real publisher id in src/data/ads.ts.
+  Review placements at /dev/ads-preview.
 - Deployment steps: DEPLOY.md. Audit results and the VERIFY list: AUDIT.md.
 
 ## Project notes

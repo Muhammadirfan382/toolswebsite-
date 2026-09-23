@@ -1,6 +1,7 @@
 ---
 import PageLayout from '../layouts/PageLayout.astro';
 import { SITE } from '../data/site';
+import { ADS_MODE } from '../data/ads';
 ---
 
 <PageLayout
@@ -41,19 +42,66 @@ import { SITE } from '../data/site';
     the tools.
   </p>
 
-  <h2>Cookies and advertising</h2>
-  <p>
-    The site does not currently use advertising or analytics cookies. We plan to show ads in
-    the future through Google AdSense. When that happens, Google and its partners may use
-    cookies to serve ads based on your visits to this and other websites, and we will update
-    this policy and ask for your consent where the law requires it. You can read how Google
-    uses information from sites that use its services in
-    <a href="https://policies.google.com/technologies/partner-sites" rel="noopener">Google's
-    partner sites policy</a>, and how it uses cookies in advertising in
-    <a href="https://policies.google.com/technologies/ads" rel="noopener">Google's advertising
-    policy</a>. You can manage personalized ads in
-    <a href="https://adssettings.google.com" rel="noopener">Google Ad Settings</a>.
-  </p>
+  {
+    ADS_MODE === 'live' ? (
+      <>
+        <h2>Advertising and cookies</h2>
+        <p>
+          This site shows ads provided by Google AdSense to keep the tools free. Google and its partners
+          may use cookies and similar technologies to show ads, measure them and prevent fraud. Ads are
+          never given access to the files, text or numbers you use in our tools; those stay in your
+          browser.
+        </p>
+        <p>
+          Visitors in the European Economic Area, the United Kingdom and Switzerland are asked for
+          consent through Google's consent message (a Google-certified consent management platform)
+          before personalized ads are shown. You can change your choice at any time with the
+          "Privacy settings" link at the bottom of every page.
+        </p>
+        <p>
+          <span class="placeholder">[TODO: your final wording: which ad partners, legal basis where required, how long choices are kept, and your contact for privacy requests.]</span>
+        </p>
+        <p>
+          Read{' '}
+          <a href="https://policies.google.com/technologies/partner-sites" rel="noopener">
+            How Google uses information from sites or apps that use our services
+          </a>
+          , and how Google uses cookies in{' '}
+          <a href="https://policies.google.com/technologies/ads" rel="noopener">
+            advertising
+          </a>
+          . You can manage personalized ads in{' '}
+          <a href="https://adssettings.google.com" rel="noopener">
+            Google Ad Settings
+          </a>
+          .
+        </p>
+      </>
+    ) : (
+      <>
+        <h2>Cookies and advertising</h2>
+        <p>
+          The site does not currently use advertising or analytics cookies. We plan to show ads in
+          the future through Google AdSense. When that happens, Google and its partners may use
+          cookies to serve ads based on your visits to this and other websites, and we will update
+          this policy and ask for your consent where the law requires it. You can read how Google
+          uses information from sites that use its services in{' '}
+          <a href="https://policies.google.com/technologies/partner-sites" rel="noopener">
+            Google's partner sites policy
+          </a>
+          , and how it uses cookies in advertising in{' '}
+          <a href="https://policies.google.com/technologies/ads" rel="noopener">
+            Google's advertising policy
+          </a>
+          . You can manage personalized ads in{' '}
+          <a href="https://adssettings.google.com" rel="noopener">
+            Google Ad Settings
+          </a>
+          .
+        </p>
+      </>
+    )
+  }
 
   <h2>Contacting us</h2>
   <p>

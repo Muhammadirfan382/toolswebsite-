@@ -25,6 +25,7 @@
     "build:preview": "node scripts/build-preview.mjs"
   },
   "dependencies": {
+    "@astrojs/markdown-satteri": "0.4.1",
     "@astrojs/sitemap": "^3.7.4",
     "astro": "^7.3.3",
     "jszip": "^3.10.2",

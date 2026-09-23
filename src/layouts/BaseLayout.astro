@@ -2,7 +2,9 @@
 import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import AdsRuntime from '../components/AdsRuntime.astro';
 import { SITE } from '../data/site';
+import { ADS_MODE, type PageType } from '../data/ads';
 
 interface Props {
   /** Full <title> text, ≤ 60 characters. */
@@ -13,6 +15,8 @@ interface Props {
   /** Absolute path under /public, e.g. "/og-default.png". */
   ogImage?: string;
   noindex?: boolean;
+  /** Set on pages that may carry ads (tool, guide, hub, home). Legal, error and dev pages never do. */
+  adsPage?: PageType;
 }
 
 const {
@@ -21,7 +25,9 @@ const {
   ogType = 'website',
   ogImage = SITE.defaultOgImage,
   noindex = false,
+  adsPage,
 } = Astro.props;
+const adsRuntime = Boolean(adsPage) && ADS_MODE !== 'off';
 
 // Normalize to the no-trailing-slash, no-extension form used in every link.
 const path =
@@ -75,5 +81,6 @@ const ogImageUrl = new URL(ogImage, Astro.site).href;
       <slot />
     </main>
     <Footer />
+    {adsRuntime && <AdsRuntime />}
   </body>
 </html>

@@ -1,8 +1,9 @@
 ---
 /**
  * Shared shell for every tool page.
- * Order: Breadcrumbs → H1 → intro → PrivacyBadge → [tool UI] → AdSlot → HowToSteps →
- *        content → FAQ → RelatedTools.
+ * Order: Breadcrumbs → H1 → intro → PrivacyBadge → [tool UI] → ad (after-result) → HowToSteps →
+ *        ad (below-howto) → content (in-content-1 inserted at ~40%) → FAQ → guides → RelatedTools.
+ *        On screens ≥ 1200px an optional sticky sidebar ad sits beside the lower part, never the tool.
  * Text (title, description, H1, intro, steps, FAQs, article) comes from
  * src/content/tools/<slug>.md; any prop passed here overrides it.
  * JSON-LD: BreadcrumbList, SoftwareApplication, HowTo and FAQPage.
@@ -18,6 +19,7 @@ import RelatedTools from '../components/RelatedTools.astro';
 import GuideCard from '../components/GuideCard.astro';
 import { getVisibleGuides } from '../lib/guides';
 import { SITE } from '../data/site';
+import { slotConfig } from '../data/ads';
 import { getCategory, toolPath, type Tool } from '../data/tools';
 import { breadcrumbList, faqPage, howTo, softwareApplication, toJsonLd } from '../lib/schema';
 
@@ -48,6 +50,8 @@ const faqs = Astro.props.faqs ?? data.faqs;
 
 const toolGuides = (await getVisibleGuides()).filter((g) => g.data.relatedTools.includes(tool.slug)).slice(0, 6);
 
+const hasSidebar = Boolean(slotConfig('tool', 'sidebar-desktop'));
+
 const site = Astro.site!;
 const category = getCategory(tool.category);
 const crumbs = [
@@ -64,7 +68,7 @@ const schemas = [
 ];
 ---
 
-<BaseLayout title={title} description={description}>
+<BaseLayout title={title} description={description} adsPage="tool">
   <Fragment slot="head">
     {schemas.map((s) => <script type="application/ld+json" set:html={toJsonLd(s)} />)}
     <slot name="head" />
@@ -80,36 +84,67 @@ const schemas = [
       <slot />
     </section>
 
-    <AdSlot id="below-tool" />
+    <AdSlot page="tool" slot="after-result" />
 
-    <HowToSteps heading={`How to use the ${tool.name} tool`} steps={howToSteps} />
+    <div class:list={['lower', { 'has-sidebar': hasSidebar }]}>
+      <div class="lower-main">
+        <HowToSteps heading={`How to use the ${tool.name} tool`} steps={howToSteps} />
 
-    <article class="prose tool-content">
-      <Content />
-    </article>
+        <AdSlot page="tool" slot="below-howto" />
 
-    <FAQ faqs={faqs} />
+        <article class="prose tool-content">
+          <Content />
+        </article>
 
-    {
-      toolGuides.length > 0 && (
-        <section class="tool-guides" aria-labelledby="tool-guides-h">
-          <h2 id="tool-guides-h">Guides</h2>
-          <ul class="tool-grid">
-            {toolGuides.map((g) => (
-              <li>
-                <GuideCard guide={g} />
-              </li>
-            ))}
-          </ul>
-        </section>
-      )
-    }
+        <FAQ faqs={faqs} />
+
+        {
+          toolGuides.length > 0 && (
+            <section class="tool-guides" aria-labelledby="tool-guides-h">
+              <h2 id="tool-guides-h">Guides</h2>
+              <ul class="tool-grid">
+                {toolGuides.map((g) => (
+                  <li>
+                    <GuideCard guide={g} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )
+        }
+      </div>
+      {
+        hasSidebar && (
+          <div class="lower-aside">
+            <AdSlot page="tool" slot="sidebar-desktop" />
+          </div>
+        )
+      }
+    </div>
 
     <RelatedTools slugs={tool.related} />
   </div>
+  <AdSlot page="tool" slot="footer-anchor" />
 </BaseLayout>
 
 <style>
+  .lower-aside {
+    display: none;
+  }
+  @media (min-width: 1200px) {
+    .lower.has-sidebar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 300px;
+      gap: var(--space-5);
+      align-items: start;
+    }
+    .lower.has-sidebar .lower-aside {
+      display: block;
+      position: sticky;
+      top: var(--space-3);
+      padding-top: var(--space-5);
+    }
+  }
   .intro {
     margin-bottom: var(--space-2);
   }

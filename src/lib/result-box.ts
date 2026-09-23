@@ -129,6 +129,7 @@ export function initResultBox(root: HTMLElement): ResultBoxController {
     show(next, summary) {
       items = [...next];
       render(summary);
+      if (items.length) root.dispatchEvent(new CustomEvent('result-shown', { bubbles: true }));
       // Move focus to the results so keyboard and screen-reader users land on them.
       heading.focus();
     },

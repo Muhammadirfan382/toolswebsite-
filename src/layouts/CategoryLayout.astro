@@ -2,6 +2,7 @@
 import BaseLayout from './BaseLayout.astro';
 import Breadcrumbs from '../components/Breadcrumbs.astro';
 import ToolCard from '../components/ToolCard.astro';
+import AdSlot from '../components/AdSlot.astro';
 import { getCategory, toolsIn, type CategoryId } from '../data/tools';
 
 interface Props {
@@ -16,7 +17,7 @@ const category = getCategory(categoryId);
 const tools = toolsIn(categoryId);
 ---
 
-<BaseLayout title={title} description={description}>
+<BaseLayout title={title} description={description} adsPage="hub">
   <div class="container">
     <Breadcrumbs
       items={[
@@ -37,9 +38,13 @@ const tools = toolsIn(categoryId);
       }
     </ul>
 
+    <AdSlot page="hub" slot="after-grid" />
+
     <section class="prose">
       <slot />
     </section>
+
+    <AdSlot page="hub" slot="end" />
   </div>
 </BaseLayout>
 

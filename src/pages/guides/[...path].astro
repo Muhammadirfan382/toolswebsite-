@@ -11,6 +11,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import GuideLayout from '../../layouts/GuideLayout.astro';
 import Breadcrumbs from '../../components/Breadcrumbs.astro';
 import GuideCard from '../../components/GuideCard.astro';
+import AdSlot from '../../components/AdSlot.astro';
 import { SITE } from '../../data/site';
 import { GUIDE_CATEGORIES, getGuideCategory, type GuideCategoryId } from '../../data/guides';
 import { getVisibleGuides, type Guide } from '../../lib/guides';
@@ -51,6 +52,7 @@ const allDrafts = listed.every((g) => g.data.draft);
           : 'Practical how-to guides for PDFs, images, QR codes and word counts, tested with our free tools that run in your browser.'
       }
       noindex={allDrafts}
+      adsPage="hub"
     >
       <div class="container">
         <Breadcrumbs
@@ -91,6 +93,7 @@ const allDrafts = listed.every((g) => g.data.draft);
             </li>
           ))}
         </ul>
+        <AdSlot page="hub" slot="after-grid" />
         <p class="muted small">
           <a href="/guides/rss.xml">RSS feed</a> of new guides.
         </p>
