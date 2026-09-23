@@ -50,8 +50,20 @@ async function loadHeaderRules() {
   return rules;
 }
 const headerRules = await loadHeaderRules();
-const headersFor = (pathname) =>
-  Object.assign({}, ...headerRules.filter((r) => r.re.test(pathname)).map((r) => r.headers));
+// Sharing over plain http (a LAN address instead of localhost) needs one production directive
+// dropped: "upgrade-insecure-requests" would rewrite every asset URL to https and fail.
+const plainHttp = process.env.PLAIN_HTTP === '1' || process.argv.includes('--lan');
+const headersFor = (pathname) => {
+  const headers = Object.assign(
+    {},
+    ...headerRules.filter((r) => r.re.test(pathname)).map((r) => r.headers),
+  );
+  const csp = headers['Content-Security-Policy'];
+  if (plainHttp && csp) {
+    headers['Content-Security-Policy'] = csp.replace(/;\s*upgrade-insecure-requests/, '');
+  }
+  return headers;
+};
 
 async function tryFile(path) {
   try {

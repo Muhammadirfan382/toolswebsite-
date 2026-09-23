@@ -69,6 +69,8 @@ const ogImageUrl = new URL(ogImage, Astro.site).href;
 
     <meta name="theme-color" content={SITE.themeColorLight} media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content={SITE.themeColorDark} media="(prefers-color-scheme: dark)" />
+    <!-- Where site assets live. A portable build (npm run build:portable) rewrites this to "./". -->
+    <meta name="asset-base" content="/" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="sitemap" href="/sitemap-index.xml" />
 

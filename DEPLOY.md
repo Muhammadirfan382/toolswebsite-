@@ -3,6 +3,41 @@
 Everything in the repository is ready. The steps below need your accounts, so they are yours to do.
 Replace `{{DOMAIN}}` with your real domain (for example `example.com`) as you go.
 
+## 0. Sharing a test link before launch
+
+For feedback rounds you do not need the real domain. Pick whichever fits the testers:
+
+**Same Wi-Fi (no accounts, instant).** Build once, then serve the build to the network:
+
+```bash
+npm run build && npm run serve:lan
+```
+
+Testers open `http://<your-computer-ip>:4399` (find the IP with `ipconfig`; the Wi-Fi adapter's
+IPv4 address). The `--lan` flag drops `upgrade-insecure-requests` from the CSP, which is the one
+production header that cannot work over plain `http` on an IP address; everything else is served
+exactly as in production. Windows Firewall asks once to allow Node. Stop the server with `Ctrl+C`,
+and it is unreachable again.
+
+**A public link (free, ~5 minutes, needs a Cloudflare login).** From the project folder:
+
+```bash
+npx wrangler pages deploy dist --project-name everyday-tools-preview
+```
+
+The first run opens a browser to log in, then prints a `*.pages.dev` URL you can share. It is a
+throwaway project name, separate from the production one created in step 2. Because the preview
+carries a real URL, keep the placeholders in mind: the pages still say `{{BRAND}}` and link to
+`example.com`.
+
+**A drag-and-drop link.** Zip the contents of `dist/` and drop the zip on
+<https://app.netlify.com/drop>. It gives a random URL that also serves `_headers` and `_redirects`.
+
+A shared preview should not be indexed while it is a test. `npm run build:portable` writes
+`dist-portable/`, a copy with relative links, `noindex` on every page and no canonical or sitemap —
+use that one for hosts you do not control, or to open the site from a folder or a USB stick
+(`dist-portable/index.html` works by double-clicking; page links point at the `.html` files).
+
 ## 1. Before the first deploy
 
 1. Fill in the placeholders:

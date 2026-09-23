@@ -22,7 +22,9 @@
     "check:bundles": "node scripts/check-bundles.mjs",
     "verify": "npm run check && npm run test:unit && npm run build && npm run audit && npm run check:bundles && npm run test:e2e",
     "shots": "node scripts/shots.ts",
-    "build:preview": "node scripts/build-preview.mjs"
+    "build:preview": "node scripts/build-preview.mjs",
+    "build:portable": "node scripts/build-portable.mjs",
+    "serve:lan": "node scripts/serve-dist.mjs 4399 --lan"
   },
   "dependencies": {
     "@astrojs/markdown-satteri": "0.4.1",

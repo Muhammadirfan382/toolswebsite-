@@ -41,6 +41,9 @@ export default defineConfig({
   build: {
     // about.html instead of about/index.html, so /about needs no trailing-slash redirect.
     format: 'file',
+    // Hashed assets live in /_astro by default; a portable build renames them (some hosts
+    // reserve paths starting with "_").
+    assets: process.env.ASSETS_DIR || '_astro',
   },
   vite: {
     build: {
