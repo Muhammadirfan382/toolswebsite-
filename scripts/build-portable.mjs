@@ -4,6 +4,7 @@
 // Usage: npm run build:portable   → dist-portable/
 import { spawnSync } from 'node:child_process';
 import { cp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 // Build first, with hashed assets in /assets (hosts such as the artifact service reserve "_" paths).
@@ -81,6 +82,7 @@ if (renames.size) {
 const PRELOAD_BASE = /function\(([a-zA-Z_$]+)\)\{return`\/`\+\1\}/;
 let patchedChunkBase = 0;
 let patchedWorkers = 0;
+const rehash = new Map(); // old basename → new basename, so a patched file gets a fresh URL
 for await (const file of textFiles(out)) {
   if (!/\.(js|mjs)$/.test(file)) continue;
   const text = await readFile(file, 'utf8');
@@ -93,9 +95,29 @@ for await (const file of textFiles(out)) {
   const workerFixed = next.replace(new RegExp('`/' + assetsDir + '/([^`]+)`', 'g'), '`./$1`');
   if (workerFixed !== next) patchedWorkers++;
   next = workerFixed;
-  if (next !== text) await writeFile(file, next);
+  if (next === text) continue;
+  await writeFile(file, next);
+  // The patch lands after Vite hashed the file name, so the URL would keep serving a visitor's
+  // cached pre-patch copy (GitHub Pages caches for 10 minutes). Give patched files a new name.
+  const name = slash(file).split('/').pop();
+  const suffix = createHash('sha256').update(next).digest('hex').slice(0, 8);
+  rehash.set(name, name.replace(/(\.[a-z]+)$/, `.p${suffix}$1`));
 }
-console.log(`sub-path fixes: ${patchedChunkBase} chunk loader(s), ${patchedWorkers} worker URL file(s).`);
+for (const [from, to] of rehash) {
+  await cp(`${out}${assetsDir}/${from}`, `${out}${assetsDir}/${to}`);
+  await rm(`${out}${assetsDir}/${from}`);
+}
+if (rehash.size) {
+  for await (const file of textFiles(out)) {
+    const text = await readFile(file, 'utf8');
+    let next = text;
+    for (const [from, to] of rehash) next = next.split(from).join(to);
+    if (next !== text) await writeFile(file, next);
+  }
+}
+console.log(
+  `sub-path fixes: ${patchedChunkBase} chunk loader(s), ${patchedWorkers} worker URL file(s), ${rehash.size} renamed.`,
+);
 
 // Clean URLs need host-side rewriting, so a portable copy links to the real .html file names instead.
 const pageSet = new Set();
