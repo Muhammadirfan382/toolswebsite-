@@ -8,7 +8,8 @@ import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const root = fileURLToPath(new URL('../dist/', import.meta.url));
+// DIST_DIR serves another build folder, e.g. the share build: DIST_DIR=dist-share.
+const root = fileURLToPath(new URL(`../${process.env.DIST_DIR ?? 'dist'}/`, import.meta.url));
 const port = Number(process.argv[2] ?? process.env.PORT ?? 4322);
 const types = {
   '.html': 'text/html; charset=utf-8',

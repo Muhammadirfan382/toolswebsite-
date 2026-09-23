@@ -22,13 +22,16 @@ and it is unreachable again.
 **A public link (free, ~5 minutes, needs a Cloudflare login).** From the project folder:
 
 ```bash
-npx wrangler pages deploy dist --project-name everyday-tools-preview
+npm run deploy:share
 ```
 
-The first run opens a browser to log in, then prints a `*.pages.dev` URL you can share. It is a
-throwaway project name, separate from the production one created in step 2. Because the preview
-carries a real URL, keep the placeholders in mind: the pages still say `{{BRAND}}` and link to
-`example.com`.
+That builds `dist-share/` — the production output, but with `noindex` on every page, a
+disallow-all `robots.txt` and no sitemap, so a test link can never turn into a second copy of the
+site in Google — and then runs `wrangler pages deploy`. The first run opens a browser to log in and
+asks to create the project (`everyday-tools-preview`, separate from the production one in step 2)
+and for a production branch name; `main` is fine. It ends by printing the `*.pages.dev` URL to
+share. Deploy again any time by re-running the same command. Remember the pages still say
+`{{BRAND}}` and link to `example.com` until the placeholders are filled.
 
 **A drag-and-drop link.** Zip the contents of `dist/` and drop the zip on
 <https://app.netlify.com/drop>. It gives a random URL that also serves `_headers` and `_redirects`.
