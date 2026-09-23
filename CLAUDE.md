@@ -1,4 +1,4 @@
-# Project: {{BRAND}} — free everyday online tools
+# Project: TrueFileTools — free everyday online tools
 
 ## What this is
 A static website of free tools (PDF, image, calculators, QR, text). Every tool runs 100% in the
@@ -56,8 +56,8 @@ and must stay true in code.
 - Deployment steps: DEPLOY.md. Audit results and the VERIFY list: AUDIT.md.
 
 ## Project notes
-- Placeholders `{{BRAND}}`, `{{EMAIL}}` and the domain live in ONE place: `src/data/site.ts`.
-  (The domain is `example.com` until replaced, because `{{DOMAIN}}` is not a valid URL.)
+- Brand (`TrueFileTools`), domain (`truefiletools.com`) and contact address live in ONE place:
+  `src/data/site.ts`. Never hard-code them anywhere else. `author` there is still a placeholder.
 - Windows path contains "&": npm scripts call `node node_modules/astro/bin/astro.mjs`
   directly instead of `.bin` shims. Keep it that way.
 - `build.format: 'file'` + `trailingSlash: 'never'` so `/about` is served from `about.html`

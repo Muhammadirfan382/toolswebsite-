@@ -1,5 +1,5 @@
 ---
-title: Percentage Calculator with Formula – Free Online
+title: Percentage Calculator with Formula – Free
 description: Free percentage calculator with formula. Find X% of Y, percent change, marks percentage and discounts, with step-by-step working. No sign-up needed.
 h1: Percentage Calculator
 intro: Solve the everyday percentage questions - percent of a number, percent change, marks percentage and adding or removing a percentage - with the working shown.

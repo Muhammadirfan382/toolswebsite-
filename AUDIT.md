@@ -106,7 +106,7 @@ Content sentences that depend on these are marked `<!-- VERIFY -->` in `src/cont
 
 ## Placeholders to fill (TODO)
 
-- `src/data/site.ts`: brand, domain (currently `example.com`), email.
+- `src/data/site.ts`: `author` — a real person for guide bylines (brand, domain and email are set).
 - `/about`: who runs the site.
 - `/privacy-policy`: last-updated date, hosting provider, operator name/country.
 - `/terms`: last-updated date, governing law / country.

@@ -1,5 +1,5 @@
 ---
-title: Character Counter – With & Without Spaces, Free
+title: Character Counter – With & Without Spaces
 description: Free character counter online. Count characters with and without spaces and check text against X, Instagram, SMS and SEO limits. No sign-up, stays private.
 h1: Character Counter
 intro: Count characters with and without spaces, and see at a glance whether your text fits common length limits.

@@ -1,5 +1,5 @@
 ---
-title: JPG to PNG Converter Online Free, No Watermark
+title: JPG to PNG Converter – Free, No Watermark
 description: Convert JPG to PNG online free, with no watermark and no sign-up. Batch convert photos to lossless PNG in your browser; files are never uploaded.
 h1: Convert JPG to PNG Online for Free
 intro: Change JPG images into PNG files, one at a time or in a batch, without uploading them.

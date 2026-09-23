@@ -1,5 +1,5 @@
 ---
-title: QR Code Generator Free – With Logo, No Expiry
+title: QR Code Generator – With Logo, No Expiry
 description: Free QR code generator with logo, no sign-up and no expiry. Make QR codes for links, WiFi, WhatsApp, vCards and more. Download PNG, SVG or JPG.
 h1: Free QR Code Generator
 intro: Create QR codes for websites, WiFi, WhatsApp, contact cards, email, phone, SMS and map locations, with your own colors and logo.

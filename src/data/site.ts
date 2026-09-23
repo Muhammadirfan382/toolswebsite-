@@ -1,14 +1,14 @@
 /**
  * Site-wide settings. Every launch placeholder lives here so it can be replaced in one edit.
- * TODO before deploy: replace brand, DOMAIN and email with real values.
+ * TODO before deploy: set `author` to a real person's name (Phase 3 rule 6).
  */
-const DOMAIN = 'example.com'; // TODO: {{DOMAIN}} — bare hostname, no protocol or slash
+const DOMAIN = 'truefiletools.com'; // bare hostname, no protocol or slash
 
 export const SITE = {
-  brand: '{{BRAND}}', // TODO: {{BRAND}}
+  brand: 'TrueFileTools',
   domain: DOMAIN,
   url: `https://${DOMAIN}`,
-  email: '{{EMAIL}}', // TODO: {{EMAIL}}
+  email: `contact@${DOMAIN}`,
   /** Real person shown as the author of guides (Phase 3 rule 6). */
   author: '{{AUTHOR_NAME}}', // TODO: {{AUTHOR_NAME}}
   privacyLine: 'Files are processed in your browser and never uploaded.',
