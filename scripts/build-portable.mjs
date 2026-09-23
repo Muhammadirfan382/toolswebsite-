@@ -8,8 +8,9 @@ import { fileURLToPath } from 'node:url';
 
 // Build first, with hashed assets in /assets (hosts such as the artifact service reserve "_" paths).
 const root = fileURLToPath(new URL('../', import.meta.url));
+const assetsDir = 'assets'; // hosts such as GitHub Pages and the artifact service reserve "_" paths
 for (const args of [['scripts/copy-pdfjs-assets.mjs'], ['node_modules/astro/bin/astro.mjs', 'build']]) {
-  const r = spawnSync(process.execPath, args, { cwd: root, stdio: 'inherit', env: { ...process.env, ASSETS_DIR: 'assets' } });
+  const r = spawnSync(process.execPath, args, { cwd: root, stdio: 'inherit', env: { ...process.env, ASSETS_DIR: assetsDir } });
   if (r.status !== 0) process.exit(r.status ?? 1);
 }
 
@@ -34,7 +35,7 @@ async function* htmlFiles(dir) {
 
 // Some hosts reserve names starting with "_": rename those files and fix every reference.
 const renames = new Map();
-for (const dir of ['assets']) {
+for (const dir of [assetsDir]) {
   let entries = [];
   try {
     entries = await readdir(out + dir);
@@ -71,6 +72,30 @@ if (renames.size) {
   }
   console.log(`renamed ${renames.size} file(s) starting with "_".`);
 }
+
+// Vite writes the site root into the JS too: lazily imported chunks are fetched as "/" + name, and
+// workers as new URL("/assets/x.js", import.meta.url). Both 404 when the copy is hosted under a
+// sub-path (a GitHub Pages project site, say), which silently breaks every tool that loads a library
+// on demand. Resolve chunks against the page's <meta name="asset-base"> and workers against the
+// chunk's own URL instead.
+const PRELOAD_BASE = /function\(([a-zA-Z_$]+)\)\{return`\/`\+\1\}/;
+let patchedChunkBase = 0;
+let patchedWorkers = 0;
+for await (const file of textFiles(out)) {
+  if (!/\.(js|mjs)$/.test(file)) continue;
+  const text = await readFile(file, 'utf8');
+  let next = text.replace(
+    PRELOAD_BASE,
+    (_, arg) =>
+      `function(${arg}){return new URL(${arg},new URL(document.querySelector('meta[name="asset-base"]')?.content||'/',location.href)).href}`,
+  );
+  if (next !== text) patchedChunkBase++;
+  const workerFixed = next.replace(new RegExp('`/' + assetsDir + '/([^`]+)`', 'g'), '`./$1`');
+  if (workerFixed !== next) patchedWorkers++;
+  next = workerFixed;
+  if (next !== text) await writeFile(file, next);
+}
+console.log(`sub-path fixes: ${patchedChunkBase} chunk loader(s), ${patchedWorkers} worker URL file(s).`);
 
 // Clean URLs need host-side rewriting, so a portable copy links to the real .html file names instead.
 const pageSet = new Set();
