@@ -8,7 +8,10 @@ scripts when it is opened from a folder (file://), so no tool will run.
 Run it through a small local web server instead. Pick whichever fits.
 
 Windows
-  Double-click start-windows.cmd in this folder.
+  FIRST extract the whole zip: right-click it > Extract All...
+  Running the script from inside the zip window extracts only the script,
+  so there would be no site to serve.
+  Then, in the extracted folder, double-click start-windows.cmd.
   It serves the folder and opens http://localhost:8000 for you.
 
 Mac or Linux, or if you prefer typing (Python is usually already installed)
