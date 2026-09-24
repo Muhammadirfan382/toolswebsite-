@@ -1,0 +1,41 @@
+TrueFileTools - test copy
+=========================
+
+Do NOT double-click index.html.
+The pages will look right, but nothing will work: browsers block a page's
+scripts when it is opened from a folder (file://), so no tool will run.
+
+Run it through a small local web server instead. Pick whichever fits.
+
+Windows
+  Double-click start-windows.cmd in this folder.
+  It serves the folder and opens http://localhost:8000 for you.
+
+Mac or Linux, or if you prefer typing (Python is usually already installed)
+  cd into this folder, then:
+    python3 -m http.server 8000
+  Open http://localhost:8000
+
+With Node instead of Python
+  cd into this folder, then:
+    npx serve -l 8000 .
+  Open http://localhost:8000
+
+Letting other people on the same Wi-Fi test it
+  Both commands above already listen on your network. Find your computer's
+  IP (Windows: ipconfig, Mac/Linux: ifconfig or ip a) and share
+  http://YOUR-IP:8000 - for example http://192.168.1.12:8000
+  Your firewall may ask once for permission; allow it.
+
+No install at all
+  The same site is already online here:
+    https://muhammadirfan382.github.io/toolswebsite-/
+
+About this copy
+  - Every tool runs inside the browser; no file is ever uploaded.
+  - Pages are marked noindex: this is a test copy, not the live site.
+  - The brand is TrueFileTools and the domain truefiletools.com is not
+    registered yet, so links to it will not open.
+  - PDFs written in Chinese, Japanese or Korean will not show those
+    characters in PDF to JPG here; the character-map pack is left out to
+    keep this copy small. The production build includes it.

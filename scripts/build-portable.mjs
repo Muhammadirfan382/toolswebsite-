@@ -142,4 +142,9 @@ for await (const file of htmlFiles(out)) {
   await writeFile(file, html);
   pages++;
 }
-console.log(`dist-portable: ${pages} pages rewritten.`);
+// Opened from a folder the pages render but no script runs: a module script is blocked by CORS on a
+// file:// origin. Ship the instructions and a one-click local server next to them.
+for (const extra of ['HOW-TO-OPEN.txt', 'start-windows.cmd']) {
+  await cp(fileURLToPath(new URL(`portable-extras/${extra}`, import.meta.url)), `${out}${extra}`);
+}
+console.log(`dist-portable: ${pages} pages rewritten, plus HOW-TO-OPEN.txt and start-windows.cmd.`);

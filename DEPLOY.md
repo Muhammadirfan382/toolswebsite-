@@ -39,8 +39,13 @@ name and the designed OG image.
 
 A shared preview should not be indexed while it is a test. `npm run build:portable` writes
 `dist-portable/`, a copy with relative links, `noindex` on every page and no canonical or sitemap —
-use that one for hosts you do not control, or to open the site from a folder or a USB stick
-(`dist-portable/index.html` works by double-clicking; page links point at the `.html` files).
+use that one for hosts you do not control, for a sub-path (a GitHub Pages project site), or to hand
+someone the site on a USB stick.
+
+That copy still needs a web server, however small: opened by double-clicking, a page renders but
+every script is blocked, because a module script may not load from a `file://` origin. The folder
+therefore ships `HOW-TO-OPEN.txt` and `start-windows.cmd`, which serves it at
+`http://localhost:8000` using whichever of Python or Node the machine already has.
 
 ## 1. Before the first deploy
 
