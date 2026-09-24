@@ -119,6 +119,8 @@ body {
   flex-direction: column;
   background: var(--bg);
   color: var(--text);
+  /* Long unbreakable strings (an email address, a URL) must not widen a 280px screen. */
+  overflow-wrap: break-word;
   font-family: var(--font-sans);
   font-size: var(--text-base);
   line-height: 1.6;
@@ -239,7 +241,12 @@ svg {
   justify-content: center;
   gap: var(--space-2);
   min-height: var(--tap);
-  padding: 0 var(--space-4);
+  /* Block padding keeps a button that wraps (a long email address on a narrow screen) readable;
+     min-height still sets the tap size for the usual single line. */
+  padding: var(--space-2) var(--space-4);
+  max-width: 100%;
+  text-align: center;
+  overflow-wrap: anywhere;
   border: 1px solid transparent;
   border-radius: var(--radius);
   background: var(--accent);
