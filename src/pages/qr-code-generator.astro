@@ -1,5 +1,6 @@
 ---
 import ToolLayout from '../layouts/ToolLayout.astro';
+import { toJsonLd } from '../lib/schema';
 import { getTool } from '../data/tools';
 import { QR_PRINT_GUIDE } from '../data/presets';
 
@@ -213,7 +214,7 @@ const types: T[] = [
     </p>
   </div>
 
-  <script type="application/json" id="qr-cfg" set:html={JSON.stringify({ minContrast: QR_PRINT_GUIDE.minContrast })} />
+  <script type="application/json" id="qr-cfg" set:html={toJsonLd({ minContrast: QR_PRINT_GUIDE.minContrast })} />
 
 </ToolLayout>
 

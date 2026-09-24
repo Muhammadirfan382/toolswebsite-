@@ -7,6 +7,7 @@ import { ADS_MODE } from './src/data/ads.ts';
 import { satteri } from '@astrojs/markdown-satteri';
 import adSlotsPlugin from './scripts/ad-slots-plugin.mjs';
 import { adsHeadersIntegration } from './scripts/ads-headers.mjs';
+import { dropDevPagesIntegration } from './scripts/dev-pages.mjs';
 
 // Draft guides must never reach the sitemap, even in a SHOW_DRAFTS preview build.
 const guideDir = new URL('./src/content/guides/', import.meta.url);
@@ -58,6 +59,7 @@ export default defineConfig({
   },
   integrations: [
     adsHeadersIntegration(ADS_MODE),
+    dropDevPagesIntegration(),
     sitemap({
       filter: (page) =>
         !page.includes('/dev/') &&

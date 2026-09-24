@@ -52,7 +52,8 @@ and must stay true in code.
   src/assets/guides/<slug>/ for guide articles. Run `npm run build` first.
 - Ads (Phase 4) are off by default. `ADS_MODE=placeholder npm run build` shows reserved grey
   boxes for layout review; live needs ADS_ENABLED plus a real publisher id in src/data/ads.ts.
-  Review placements at /dev/ads-preview.
+  Review placements at /dev/ads-preview. /dev/* pages exist for previewing only: the build deletes
+  them from dist unless SHOW_DEV=1, so they are never published.
 - Deployment steps: DEPLOY.md. Audit results and the VERIFY list: AUDIT.md.
 
 ## Project notes

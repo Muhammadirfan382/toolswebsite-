@@ -1,5 +1,6 @@
 ---
 import ToolLayout from '../layouts/ToolLayout.astro';
+import { toJsonLd } from '../lib/schema';
 import { getTool } from '../data/tools';
 import { GRADE_SCALES } from '../data/presets';
 
@@ -81,7 +82,7 @@ const initialRows = [1, 2, 3, 4];
     </li>
   </template>
 
-  <script type="application/json" id="gpa-scales" set:html={JSON.stringify(GRADE_SCALES.map((s) => ({ id: s.id, grades: s.grades })))} />
+  <script type="application/json" id="gpa-scales" set:html={toJsonLd(GRADE_SCALES.map((s) => ({ id: s.id, grades: s.grades })))} />
 
 </ToolLayout>
 

@@ -32,6 +32,9 @@ jobs:
       - name: Type check
         run: npm run check
 
+      - name: Secret scan
+        run: npm run check:secrets
+
       - name: Unit tests
         run: npm run test:unit
 

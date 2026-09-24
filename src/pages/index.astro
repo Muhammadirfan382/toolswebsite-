@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { toJsonLd } from '../lib/schema';
 import ToolCard from '../components/ToolCard.astro';
 import Icon from '../components/Icon.astro';
 import AdSlot from '../components/AdSlot.astro';
@@ -29,7 +30,7 @@ const jsonLd = [
 ---
 
 <BaseLayout title={title} description={description} adsPage="home">
-  <script type="application/ld+json" slot="head" set:html={JSON.stringify(jsonLd)} />
+  <script type="application/ld+json" slot="head" set:html={toJsonLd(jsonLd)} />
 
   <div class="container">
     <section class="hero">

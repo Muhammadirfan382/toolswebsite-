@@ -1,5 +1,6 @@
 ---
 import ToolLayout from '../layouts/ToolLayout.astro';
+import { toJsonLd } from '../lib/schema';
 import { getTool } from '../data/tools';
 import { BMI_CATEGORIES } from '../data/presets';
 
@@ -86,7 +87,7 @@ const pct = (v: number) => ((Math.min(Math.max(v, SCALE_MIN), SCALE_MAX) - SCALE
   </p>
   <p class="visually-hidden" aria-live="polite" id="bmi-status"></p>
 
-  <script type="application/json" id="bmi-scale-cfg" set:html={JSON.stringify({ min: SCALE_MIN, max: SCALE_MAX, normal: BMI_CATEGORIES.find((c) => c.id === 'normal') })} />
+  <script type="application/json" id="bmi-scale-cfg" set:html={toJsonLd({ min: SCALE_MIN, max: SCALE_MAX, normal: BMI_CATEGORIES.find((c) => c.id === 'normal') })} />
 
 </ToolLayout>
 

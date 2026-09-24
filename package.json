@@ -20,13 +20,14 @@
     "test:all": "npm run test:unit && npm run test",
     "audit": "node scripts/audit-dist.mjs",
     "check:bundles": "node scripts/check-bundles.mjs",
-    "verify": "npm run check && npm run test:unit && npm run build && npm run audit && npm run check:bundles && npm run test:e2e",
+    "verify": "npm run check && npm run check:secrets && npm run test:unit && npm run build && npm run audit && npm run check:bundles && npm run test:e2e",
     "shots": "node scripts/shots.ts",
     "build:preview": "node scripts/build-preview.mjs",
     "build:portable": "node scripts/build-portable.mjs",
     "build:share": "node scripts/build-share.mjs",
     "deploy:share": "npm run build:share && npx --yes wrangler pages deploy dist-share --project-name everyday-tools-preview",
-    "serve:lan": "node scripts/serve-dist.mjs 4399 --lan"
+    "serve:lan": "node scripts/serve-dist.mjs 4399 --lan",
+    "check:secrets": "node scripts/check-secrets.mjs"
   },
   "dependencies": {
     "@astrojs/markdown-satteri": "0.4.1",

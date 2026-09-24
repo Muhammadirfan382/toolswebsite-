@@ -11,6 +11,10 @@
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
   X-Frame-Options: DENY
   Cross-Origin-Opener-Policy: same-origin
+  # HTTPS only, for two years, including subdomains. Set after the custom domain serves HTTPS
+  # everywhere (DEPLOY.md step 3): a browser that sees this will refuse plain http for the whole
+  # domain until it expires, so an http-only subdomain would become unreachable.
+  Strict-Transport-Security: max-age=63072000; includeSubDomains
 
 # Phase 4 (Google AdSense): replace the Content-Security-Policy line above with a version that adds
 # the ad domains, and only after the cookie/consent notice is in place. Check Google's current CSP

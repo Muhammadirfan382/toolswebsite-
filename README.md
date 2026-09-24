@@ -70,6 +70,7 @@ npm run dev
 | `npm run test:e2e` | Playwright only (builds first with `npm test`) |
 | `npm run audit` | Titles, descriptions, links, sitemap, structured data |
 | `npm run check:bundles` | Fails if a page's initial load exceeds the budget |
+| `npm run check:secrets` | Fails if anything credential-shaped is tracked in git |
 | `npm run serve:lan` | Serve `dist/` to your network for phone testing |
 | `npm run build:share` | `dist-share/`: production output, `noindex`, for a preview deploy |
 | `npm run build:portable` | `dist-portable/`: relative links, works under any sub-path |
@@ -87,6 +88,5 @@ published by [`.github/workflows/preview.yml`](.github/workflows/preview.yml) on
 
 Phase 1 (the 16 tools, SEO, tests, performance) is complete. The guides system and the ad layer are
 scaffolded but inactive — ads are off by default and emit no markup. Still to do before launch, all
-tracked in [AUDIT.md](AUDIT.md): register the domain, replace `public/og-default.png` with a designed
-share card, fill the `[TODO]` wording in About / Privacy / Terms, set a real author name for guide
+tracked in [AUDIT.md](AUDIT.md): register the domain, fill the `[TODO]` wording in About / Privacy / Terms, set a real author name for guide
 bylines, and confirm the ⚠ VERIFY figures against their official sources.

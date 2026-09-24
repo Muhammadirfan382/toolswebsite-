@@ -30,9 +30,9 @@ disallow-all `robots.txt` and no sitemap, so a test link can never turn into a s
 site in Google — and then runs `wrangler pages deploy`. The first run opens a browser to log in and
 asks to create the project (`everyday-tools-preview`, separate from the production one in step 2)
 and for a production branch name; `main` is fine. It ends by printing the `*.pages.dev` URL to
-share. Deploy again any time by re-running the same command. The pages carry the real brand and
-domain now; what is still unfinished is the `[TODO: …]` wording in the legal pages, the guide author
-name and the designed OG image.
+share. Deploy again any time by re-running the same command. The pages carry the real brand, domain
+and share card now; what is still unfinished is the `[TODO: …]` wording in the legal pages and the
+guide author name.
 
 **A drag-and-drop link.** Zip the contents of `dist/` and drop the zip on
 <https://app.netlify.com/drop>. It gives a random URL that also serves `_headers` and `_redirects`.
@@ -54,7 +54,7 @@ therefore ships `HOW-TO-OPEN.txt` and `start-windows.cmd`, which serves it at
    - `src/data/site.ts`: `author` — a real person's name for guide bylines (Phase 3 rule 6).
    - `/about`, `/privacy-policy`, `/terms`: the `[TODO: …]` placeholders (who runs the site, dates,
      hosting provider, governing law).
-   - `public/og-default.png`: a designed 1200 × 630 image for link previews.
+   - `public/og-default.png` is generated: re-run `node scripts/make-og.mjs` after any brand change.
    - A working `contact@truefiletools.com` mailbox — Cloudflare Email Routing forwards it to your
      own inbox for free once the domain's DNS is on Cloudflare.
 2. Check the ⚠ VERIFY list in `AUDIT.md` against official sources and fill each `source` field in
@@ -89,7 +89,12 @@ curl -I https://YOUR-PROJECT.pages.dev/merge-pdf
 ```
 
 You should see `content-security-policy`, `x-content-type-options: nosniff`,
-`referrer-policy: strict-origin-when-cross-origin` and `permissions-policy`.
+`referrer-policy: strict-origin-when-cross-origin`, `permissions-policy`, `x-frame-options: DENY`,
+`cross-origin-opener-policy: same-origin` and `strict-transport-security`.
+
+That last one, HSTS, tells browsers to use HTTPS for `truefiletools.com` and every subdomain for two
+years. Confirm HTTPS works on the custom domain (step 3) before pointing the domain at this build: a
+browser that has seen the header will refuse plain `http` for the whole domain until it expires.
 
 ## 3. Custom domain and HTTPS
 
